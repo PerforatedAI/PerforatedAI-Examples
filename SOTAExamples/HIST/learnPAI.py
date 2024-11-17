@@ -236,8 +236,10 @@ def main(args):
     gf.testSaves = True
     #This is needed because a couple layers dont get passed all the way to the end
     gf.checkedSkippedLayers = True
-    gf.capAtN = True
-
+    gf.missedOnesConfirmed = True
+    gf.historyLookback = 5
+    gf.capAtN = False
+    
     seed = args.seed
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -285,10 +287,6 @@ def main(args):
         else:
             model = get_model(args.model_name)(d_feat = args.d_feat, num_layers = args.num_layers)
         
-        gf.moduleNamesToConvert.append('GRU')
-        gf.moduleNamesWithProcessing.append('GRU')
-        gf.moduleByNameProcessingClasses.append(PBM.GRUProcessor)
-
         model = PBU.convertNetwork(model)
         gf.pbTracker.initialize(
             doingPB = True, #This can be set to false if you want to do just normal training 
@@ -296,7 +294,6 @@ def main(args):
             maximizingScore=True, #true for maximizing score, false for reducing error
             makingGraphs=True)  #true if you want graphs to be saved
         
-        model.rnn.setThisInputDimensions([-1,-1, 0])
     
             
         model.to(device)
@@ -373,8 +370,8 @@ def main(args):
                     break
             '''
         pprint('best score:', best_score, '@', best_epoch)
-        model.load_state_dict(best_param)
-        torch.save(best_param, output_path+'/model.bin')
+        #model.load_state_dict(best_param)
+        #torch.save(best_param, output_path+'/model.bin')
 
         pprint('inference...')
         res = dict()

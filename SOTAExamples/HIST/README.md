@@ -10,6 +10,7 @@ To run with PAI:
     Extract the data from online into this folder
     # https://drive.google.com/drive/folders/1lGxaGxyw9GJCJHq5z_I34QwrhlZnWSSK?usp=sharing
     cp -r dotqlib/ /home/pai_user/.qlib
+    pip install your perforated ai package
 
 Run original code with:
 

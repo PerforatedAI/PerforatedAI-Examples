@@ -5,6 +5,7 @@ To run with PAI:
 
     pip install -r requirements.txt
     # This may tell you there is a dependency problem, but if you run it a second time and it does not come up again you can ignore it
+    pip install your perforated ai package
 
 Run original code with:
 

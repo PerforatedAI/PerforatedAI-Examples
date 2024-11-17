@@ -5,3 +5,26 @@ This repository can be used when working with Perforated Backpropagation<sup>tm<
 SOTAExamples are examples which were state-of-the-art algorithms on the specified dataset at the time we originally worked with them.  otherExamples are examples which display PAI's ability with a particular architecture or data type, but did not start with state-of-the-art algorithms.
 
 General instructions for adding PAI to a system can be found in the [PAI-API](https://github.com/PerforatedAI/PerforatedAI-API) repository.  But the specific examples of where to put each function and how to use the customization functions can be found here to best implement the system into your training program.  Each folder's README contains the specifics of any decisions not included in the PAI-API README.  To see the differences just look for all files ending with PAI.py, and compare them to the files without the "PAI" at the end.
+
+Because Perforated Backpropagation<sup>tm</sup> is not open source, a license is required to use our software.  If you have not acquired one yet just fill out the form [here](https://www.perforatedai.com/freemium) and we will email you a license file within 24 hours.  A freemium license will allow you to test the baseline ability of the algorithm by adding one Dendrite with most of the functionality of the premium version.  If you would like to request a premium license for full functionality first fill out the freemium form and then email our [founder](Rorry@PerforatedAI.com) to get started.  If you are an academic who would like to replicate the results of our paper please make a note of that in the email. While our paper is under review this can be done anonymously.  Data required for examples as well as spreadsheets with our exact outputs to generate the figures from the paper can be found [here](https://drive.google.com/drive/folders/1lGxaGxyw9GJCJHq5z_I34QwrhlZnWSSK?usp=sharing).
+
+## Understanding Results
+
+To determine the numbers we used in our paper run the examples via each README.  png images and csv files will be generated in the folder you are in.  The csv file you want to look at will end with bestTestScores.csv.  This file will have three columns.
+
+- The leftmost column is the parameter count of each version of the architecture.  This should remain the same across all experiments.
+- The second column is the maximum validation score for a given architecture.  As learning switches back and forth between neuron learning and Dendrite learning this is the best validation score that existed during neuron learning with a particular Dendrite count.
+- The third column is NOT the maximum test score for a given architecture.  Rather, it is the test score that was calculated at the epoch where the maximum validation score was calculated from column two.  This is the column we used when generating all results.
+
+## Running with Docker
+
+If you would like to be as sure as possible you can run all the examples as we have, using the same docker as us could be the best choice.  Just build with the provided Dockerfile and then everything can be done from inside the container.
+
+Instructions to setup docker can be found [here](https://docs.docker.com/engine/install), and then instructions for the nvidia docker can be found [here](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
+    Build:
+    > docker build -f Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t nvidiaconda .
+    Run from folder where your code is:
+    > docker run --gpus all -i -v .:/pai -w /pai -t nvidiaconda /bin/bash
+    
+Project requirements.txt's do not contain perforatedai since you will have different versions depending on your level of usage.  Just install perforatedai with pip laster after running other commands in the project READMEs, otherwise it will download versions of dependencies that then will just get overwritten.

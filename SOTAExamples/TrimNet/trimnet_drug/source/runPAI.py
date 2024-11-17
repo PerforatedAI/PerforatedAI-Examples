@@ -21,6 +21,7 @@ gf.pEpochsToSwitch = 100  #be sure this is higher than scheduler patience,
 gf.nodeIndex = 1
 gf.pbImprovementThreshold = 0.25 #improvement increase needed to call a new best PBScore
 gf.initialCorrelationBatches = 10
+gf.historyLookback = 1
 
 class GRUCellLayerNormProcessor():
     #Post processing does eventually need to return h_t and c__t, but h_t gets modified py the PB
