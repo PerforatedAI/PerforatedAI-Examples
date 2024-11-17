@@ -6,17 +6,17 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms, models
 from torch.optim.lr_scheduler import StepLR
+import numpy as np
+from torch.utils.data import Subset
 
-from PAI import globalsFile as gf
-from PAI import pb_layer as PB
-from PAI import pb_models as PBM
-from PAI import pb_utils as PBU
-from PAI import pb_neuron_layer_tracker as PBT
+from perforatedai import globalsFile as gf
+from perforatedai import pb_models as PBM
+from perforatedai import pb_utils as PBU
 
 class Net(nn.Module):
     def __init__(self, num_classes, width):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, int(32*width), 3, 1)
+        self.conv1 = nn.Conv2d(3, int(32*width), 3, 1)
         self.conv2 = nn.Conv2d(int(32*width), int(64*width), 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.5)
@@ -39,6 +39,20 @@ class Net(nn.Module):
         return output
 
 
+class NetSmall(nn.Module):
+    def __init__(self, num_classes, width):
+        super(NetSmall, self).__init__()
+        self.conv1 = nn.Conv2d(1, int(3*width), 5, 2)
+        self.conv2 = nn.Conv2d(int(3*width), int(num_classes), 12, 2)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.sigmoid(x)
+        x = self.conv2(x)
+        x = x.squeeze()
+        #output = F.log_softmax(x, dim=1)
+        return x
+
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     correct = 0
@@ -51,7 +65,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         #Pass the data through your model to get the output
         output = model(data)
         #Calculate the error
-        loss = F.nll_loss(output, target)
+        loss = F.cross_entropy(output, target)
         #Backpropagate the error through the network
         loss.backward()
         if(args.dataParallel):
@@ -73,6 +87,56 @@ def train(args, model, device, train_loader, optimizer, epoch):
     gf.pbTracker.addExtraScore(100. * correct / len(train_loader.dataset), 'train') 
     model.to(device)
 
+
+restructuredCount = 0
+
+def validate(model, device, test_loader, optimizer, scheduler, args):
+    global restructuredCount
+    model.eval()
+    test_loss = 0
+    correct = 0
+    #Dont calculate Gradients
+    with torch.no_grad():
+        #Loop over all the test data
+        for data, target in test_loader:
+            data, target = data.to(device), target.to(device)
+            #Pass the data through your model to get the output
+            output = model(data)
+            #Calculate the error
+            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+            #Determine the predictions the network was making
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            #Increment how many times it was correct
+            correct += pred.eq(target.view_as(pred)).sum()
+
+    #Display Metrics
+    test_loss /= len(test_loader.dataset)
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        test_loss, correct, len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)))
+
+    if(args.dataParallel):
+        #Add the new score to the tracker which may restructured the model with PB Nodes
+        model, improved, restructured, trainingComplete = gf.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model.module,
+        args.save_name) 
+        model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(gf.device)
+    else:
+        #Add the new score to the tracker which may restructured the model with PB Nodes
+        model, improved, restructured, trainingComplete = gf.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model,
+        args.save_name) 
+        model.to(device)
+    #If it was restructured reset the optimizer and scheduler
+    if(restructured): 
+        restructuredCount += 1
+        if(restructuredCount > (args.numPBCycles*2)):
+            trainingComplete = True
+        optimArgs = {'params':model.parameters(),'lr':args.lr}
+        schedArgs = {'step_size':1, 'gamma': args.gamma}
+        optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+
+    return model, optimizer, scheduler, trainingComplete
 
 def test(model, device, test_loader, optimizer, scheduler, args):
     model.eval()
@@ -100,24 +164,12 @@ def test(model, device, test_loader, optimizer, scheduler, args):
 
     if(args.dataParallel):
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = gf.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
-        model.module,
-        args.save_name) 
+        gf.pbTracker.addTestScore(100. * correct / len(test_loader.dataset), 'Test Accuracy') 
         model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(gf.device)
     else:
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = gf.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
-        model,
-        args.save_name) 
+        gf.pbTracker.addTestScore(100. * correct / len(test_loader.dataset), 'Test Accuracy') 
         model.to(device)
-    #If it was restructured reset the optimizer and scheduler
-    if(restructured): 
-        optimArgs = {'params':model.parameters(),'lr':args.lr}
-        schedArgs = {'step_size':1, 'gamma': args.gamma}
-        optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
-
-    return model, optimizer, scheduler
-
 
 def main():
     # Training settings
@@ -154,16 +206,26 @@ def main():
                         help='if true only test converting the backbone of the network')
     parser.add_argument('--doingPB', type=int, default=1,
                         help='if false dont convert model')
+    parser.add_argument('--numPBCycles', type=int, default=100000,
+                        help='if false dont convert model')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
     parser.add_argument('--model', type=str, default='default',
                         help='For model type')
+    parser.add_argument('--doingPerforated', type=int, default=1,
+                        help='if false dont convert model')
+    parser.add_argument('--doingCC', type=int, default=1,
+                        help='if false dont convert model')
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     use_mps = not args.no_mps and torch.backends.mps.is_available()
 
+    if(not args.doingPerforated):
+        gf.doingPerforated = False
+    if(not args.doingCC):
+        gf.doingCC = False
     torch.manual_seed(args.seed)
 
     if use_cuda:
@@ -193,8 +255,21 @@ def main():
                         transform=transform)
         dataset2 = datasets.MNIST('./data', train=False,
                         transform=transform)
+        
+        
+        test_size = len(dataset2)
+        indices = list(range(test_size))
+        # Split half the test data into validation
+        split = int(0.5 * test_size)
+        np.random.shuffle(indices)
+        test_indices, val_indices = indices[split:], indices[:split]
+
+        val_split = Subset(dataset2, val_indices)
+        test_split = Subset(dataset2, test_indices)
+
+        test_loader = torch.utils.data.DataLoader(test_split, **test_kwargs)
+        validation_loader = torch.utils.data.DataLoader(val_split, **test_kwargs)
         train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
-        test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
     elif(args.dataset == 'EMNIST'):
         num_classes = 47
         image_size = 28
@@ -221,8 +296,22 @@ def main():
         dataset1 = datasets.EMNIST(root='./data', split='balanced', train=True, download=True, transform=transform_train)
 
         dataset2 = datasets.EMNIST(root='./data',  split='balanced', train=False, download=True, transform=transform_test)
+        test_size = len(dataset2)
+        indices = list(range(test_size))
+        # Split half the test data into validation
+        split = int(0.5 * test_size)
+        np.random.shuffle(indices)
+        test_indices, val_indices = indices[split:], indices[:split]
+
+        val_split = Subset(dataset2, val_indices)
+        test_split = Subset(dataset2, test_indices)
+
+        test_loader = torch.utils.data.DataLoader(test_split, **test_kwargs)
+        validation_loader = torch.utils.data.DataLoader(val_split, **test_kwargs)
         train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
-        test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
+
+
+
 
     #Set up some global parameters for PAI code
     gf.switchMode = gf.doingHistory # This is when to switch between PAI and regular learning
@@ -243,26 +332,28 @@ def main():
             model = torch.load(args.pretrained)
     elif(args.model=='transformer'):
         model = models.vit_b_16(num_classes == num_classes)
+    elif(args.model=='small'):
+        model = NetSmall(num_classes, args.width)
     if(args.dataParallel):
         PB.newDataParallel = True
     
     if(args.doingPB):
         #Convert the network to be a PAI Network
         if(args.test_head):
-            model.fc2 = PB.convertNetwork(model.fc2, layerName = 'layer2')
-        if(args.test_backbone):
-            model.conv1 = PB.convertNetwork(model.conv1, layerName = 'layer2')
-            model.conv2 = PB.convertNetwork(model.conv2, layerName = 'layer2')
-            model.fc1 = PB.convertNetwork(model.fc1, layerName = 'layer2')
+            model.fc2 = PBU.convertNetwork(model.fc2, layerName = 'fc2')
+        elif(args.test_backbone):
+            model.conv1 = PBU.convertNetwork(model.conv1, layerName = 'conv1')
+            model.conv2 = PBU.convertNetwork(model.conv2, layerName = 'conv2')
+            model.fc1 = PBU.convertNetwork(model.fc1, layerName = 'fc1')
         else:
-            model = PB.convertNetwork(model)
+            model = PBU.convertNetwork(model)
                 #Setup a few extra parameters
-        gf.pbTracker.setOptionalParams(
+        gf.pbTracker.initialize(
             doingPB = True, #This can be set to false if you want to do just normal training 
             saveName=args.save_name,  # change the save name for different parameter runs
             maximizingScore=True, #true for maximizing score, false for reducing error
-            makingGraphs=True,  #true if you want graphs to be saved
-            switchMode = gf.switchMode) #just leave this as is`
+            makingGraphs=True)  #true if you want graphs to be saved
+            
     else:
         PBT.defaultInitPBTracker(False, saveName='noPB')
 
@@ -288,11 +379,10 @@ def main():
     #Run your epochs of training and testing
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        model, optimizer, scheduler = test(model, device, test_loader, optimizer, scheduler, args)
-        #scheduler.step()
-
-    if args.save_model:
-        torch.save(model.state_dict(), "mnist_cnn.pt")
+        test(model, device, test_loader, optimizer, scheduler, args)
+        model, optimizer, scheduler, trainingComplete = validate(model, device, validation_loader, optimizer, scheduler, args)
+        if trainingComplete:
+            break
 
 
 if __name__ == '__main__':
