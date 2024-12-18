@@ -15,7 +15,7 @@ Once inside the container first install your verison of the Perforated AI packag
 
 Run original with:
 
-    CUDA_VISIBLE_DEVICES='' python geometric.py
+    CUDA_VISIBLE_DEVICES='' python pointnet_tutorial.py
         
 Results:
 
@@ -23,7 +23,7 @@ Results:
 
 Run PAI with:
 
-    CUDA_VISIBLE_DEVICES='' python geometricPAI.py
+    CUDA_VISIBLE_DEVICES='' python pointnet_tutorial_perforatedai.py
 
 Results:
 

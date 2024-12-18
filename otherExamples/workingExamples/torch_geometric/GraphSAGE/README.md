@@ -32,7 +32,7 @@ Results:
     
 Run PAI with:
 
-    CUDA_VISIBLE_DEVICES=0 python ogbn_trainPAI.py --dataset ogbn-products --batch_size 128 --saveName ogbnPAI
+    CUDA_VISIBLE_DEVICES=0 python ogbn_train_perforatedai.py --dataset ogbn-products --batch_size 128 --saveName ogbnPAI
     
 Results:
 
