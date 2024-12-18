@@ -19,7 +19,7 @@ from unet import UNet
 from utils.data_loading import BasicDataset, CarvanaDataset
 from utils.dice_score import dice_loss
 
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
@@ -84,11 +84,11 @@ def train_model(
     #scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=5)  # goal: maximize Dice score
 
 
-    gf.pbTracker.setOptimizer(torch.optim.RMSprop)
-    gf.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
+    PBG.pbTracker.setOptimizer(torch.optim.RMSprop)
+    PBG.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
     optimArgs = {'params':model.parameters(),'lr':learning_rate, 'weight_decay':weight_decay, 'momentum':momentum}
     schedArgs = {'mode':'max', 'patience': 5} #Make sure this is lower than epochs to switch
-    optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+    optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
 
 
@@ -177,7 +177,7 @@ def train_model(
                             pass
                         '''
                         
-                        model, improved, restructured, trainingComplete = gf.pbTracker.addValidationScore(val_score, 
+                        model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_score, 
                         model, # .module if its a parallel, 
                         'PBUnet') # Use the same one as in setOptionalParams
                         model.to(memory_format=torch.channels_last)
@@ -186,7 +186,7 @@ def train_model(
                         if(restructured):                             
                             optimArgs = {'params':model.parameters(),'lr':learning_rate, 'weight_decay':weight_decay, 'momentum':momentum}
                             schedArgs = {'mode':'max', 'patience': 5} 
-                            optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+                            optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
         if save_checkpoint:
             Path(dir_checkpoint).mkdir(parents=True, exist_ok=True)
@@ -222,15 +222,15 @@ if __name__ == '__main__':
 
 
 
-    gf.switchMode = gf.doingHistory # This is when to switch between PAI and regular learning
-    gf.nEpochsToSwitch = 25  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
-    gf.pEpochsToSwitch = 25  #Same as above for PAI epochs
-    gf.nodeIndex = 1 # This is the index of the nodes within a layer's tensors, as opposed to batch and convolution indexes
-    gf.inputDimensions = [-1, 0, -1, -1] #this is the shape of inputs if you have a shape that varies
+    PBG.switchMode = PBG.doingHistory # This is when to switch between PAI and regular learning
+    PBG.nEpochsToSwitch = 25  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
+    PBG.pEpochsToSwitch = 25  #Same as above for PAI epochs
+    PBG.nodeIndex = 1 # This is the index of the nodes within a layer's tensors, as opposed to batch and convolution indexes
+    PBG.inputDimensions = [-1, 0, -1, -1] #this is the shape of inputs if you have a shape that varies
 
 
-    #gf.switchMode = gf.doingSwitchEveryTime
-    #gf.retainAllPB = True
+    #PBG.switchMode = PBG.doingSwitchEveryTime
+    #PBG.retainAllPB = True
 
 
     # Change here to adapt to your data
@@ -243,7 +243,7 @@ if __name__ == '__main__':
 
 
     model = PBU.convertNetwork(model)
-    gf.pbTracker.initialize(
+    PBG.pbTracker.initialize(
         doingPB = True, #This can be set to false if you want to do just normal training 
         saveName='PBUnet',  # change the save name for different parameter runs
     maximizingScore=True, #true for maximizing validation score, false for minimuzing validation loss

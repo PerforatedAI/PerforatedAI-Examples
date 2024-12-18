@@ -9,19 +9,19 @@ from modelPAI import TrimNet as Model
 from trainerPAI import Trainer
 from utils import Option, seed_set, toxcast_tasks
 
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
 
-gf.paramValsSetting = gf.paramValsByUpdateEpoch
-gf.switchMode = gf.doingHistory
-gf.nEpochsToSwitch = 100  #be sure this is higher than scheduler patience, 
-gf.pEpochsToSwitch = 100  #be sure this is higher than scheduler patience, 
-gf.nodeIndex = 1
-gf.pbImprovementThreshold = 0.25 #improvement increase needed to call a new best PBScore
-gf.initialCorrelationBatches = 10
-gf.historyLookback = 1
+PBG.paramValsSetting = PBG.paramValsByUpdateEpoch
+PBG.switchMode = PBG.doingHistory
+PBG.nEpochsToSwitch = 100  #be sure this is higher than scheduler patience, 
+PBG.pEpochsToSwitch = 100  #be sure this is higher than scheduler patience, 
+PBG.nodeIndex = 1
+PBG.pbImprovementThreshold = 0.25 #improvement increase needed to call a new best PBScore
+PBG.initialCorrelationBatches = 10
+PBG.historyLookback = 1
 
 class GRUCellLayerNormProcessor():
     #Post processing does eventually need to return h_t and c__t, but h_t gets modified py the PB
@@ -57,15 +57,15 @@ class GRUCellLayerNormProcessor():
 
 
 
-gf.moduleNamesToConvert.append('GRUCellLayerNorm')
-gf.moduleNamesWithProcessing.append('GRUCellLayerNorm')
-gf.moduleByNameProcessingClasses.append(GRUCellLayerNormProcessor)
-gf.moduleNamesToConvert.append('MultiHeadTripletAttention')
-gf.moduleNamesToConvert.append('Set2Set')
-#gf.moduleNamesWithProcessing.append('LSTM')
-#gf.moduleByNameProcessingClasses.append(PBM.LSTMCellProcessor)
+PBG.moduleNamesToConvert.append('GRUCellLayerNorm')
+PBG.moduleNamesWithProcessing.append('GRUCellLayerNorm')
+PBG.moduleByNameProcessingClasses.append(GRUCellLayerNormProcessor)
+PBG.moduleNamesToConvert.append('MultiHeadTripletAttention')
+PBG.moduleNamesToConvert.append('Set2Set')
+#PBG.moduleNamesWithProcessing.append('LSTM')
+#PBG.moduleByNameProcessingClasses.append(PBM.LSTMCellProcessor)
 
-gf.debuggingMemoryLeak = False
+PBG.debuggingMemoryLeak = False
 
 def train():
     parser = argparse.ArgumentParser()
@@ -110,7 +110,7 @@ def train():
     args = Option(d)
     seed_set(args.seed)
 
-    gf.inputDimensions = [-1, 0]
+    PBG.inputDimensions = [-1, 0]
 
 
     args.parallel = True if args.gpu and len(args.gpu) > 1 else False
@@ -262,7 +262,7 @@ def train():
             weight=weight,
             tasks_num=len(args.tasks),
         )
-        gf.pbTracker.initialize(doingPB = True, saveName='PB', 
+        PBG.pbTracker.initialize(doingPB = True, saveName='PB', 
         maximizingScore=True, makingGraphs=True)
         trainer.train()
         print("Testing...")

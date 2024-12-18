@@ -15,7 +15,7 @@ from torchvision.models._api import Weights, WeightsEnum
 from torchvision.models._meta import _IMAGENET_CATEGORIES
 from torchvision.models._utils import _ovewrite_named_param, handle_legacy_interface
 
-from PAI import globalsFile as gf
+from perforatedai import pb_globals as PBG
 
 
 __all__ = [
@@ -252,10 +252,10 @@ class DenseNetPAI(nn.Module):
             names.append(name)
 
         self.features = nn.Sequential()
-        self.features.add_module('convnorm0', gf.PBSequential([originalDenseNet.features[0], originalDenseNet.features[1]]))
+        self.features.add_module('convnorm0', PBG.PBSequential([originalDenseNet.features[0], originalDenseNet.features[1]]))
         for i in range(2,len(originalDenseNet.features)-2):
             self.features.add_module(names[i], originalDenseNet.features[i])
-        self.features.add_module('transitionNorm', gf.PBSequential([originalDenseNet.features[-2], originalDenseNet.features[-1]]))
+        self.features.add_module('transitionNorm', PBG.PBSequential([originalDenseNet.features[-2], originalDenseNet.features[-1]]))
         # Linear layer
         self.classifier = originalDenseNet.classifier
 

@@ -7,7 +7,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms, models
 from torch.optim.lr_scheduler import StepLR
 
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
@@ -43,7 +43,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         #Increment how many times it was correct
         correct += pred.eq(target.view_as(pred)).sum()
     #Add the new score to the tracker which may restructured the model with PB Nodes
-    gf.pbTracker.addExtraScore(100. * correct / len(train_loader.dataset), 'train') 
+    PBG.pbTracker.addExtraScore(100. * correct / len(train_loader.dataset), 'train') 
     model.to(device)
 
 
@@ -73,13 +73,13 @@ def test(model, device, test_loader, optimizer, scheduler, args):
 
     if(args.dataParallel):
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = gf.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model, improved, restructured = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
         model.module,
         args.save_name) 
-        model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(gf.device)
+        model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
     else:
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = gf.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model, improved, restructured = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
         model,
         args.save_name) 
         model.to(device)
@@ -87,7 +87,7 @@ def test(model, device, test_loader, optimizer, scheduler, args):
     if(restructured): 
         optimArgs = {'params':model.parameters(),'lr':args.lr}
         schedArgs = {'step_size':1, 'gamma': args.gamma}
-        optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+        optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
     return model, optimizer, scheduler
 
@@ -196,15 +196,15 @@ def main():
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     #Set up some global parameters for PAI code
-    gf.switchMode = gf.doingHistory # This is when to switch between PAI and regular learning
-    #gf.retainAllPB = True
-    gf.nodeIndex = 1 # This is the index of the nodes within a layer    
-    gf.inputDimensions = [-1, -1, 0] #this is the shape of inputs, for a standard conv net this will work
-    gf.nEpochsToSwitch = 10  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
-    gf.pEpochsToSwitch = 10  #Same as above for PAI epochs
-    gf.capAtN = True #Makes sure subsequent rounds last max as long as first round
-    gf.initialHistoryAfterSwitches = 5
-    gf.testSaves = True
+    PBG.switchMode = PBG.doingHistory # This is when to switch between PAI and regular learning
+    #PBG.retainAllPB = True
+    PBG.nodeIndex = 1 # This is the index of the nodes within a layer    
+    PBG.inputDimensions = [-1, -1, 0] #this is the shape of inputs, for a standard conv net this will work
+    PBG.nEpochsToSwitch = 10  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
+    PBG.pEpochsToSwitch = 10  #Same as above for PAI epochs
+    PBG.capAtN = True #Makes sure subsequent rounds last max as long as first round
+    PBG.initialHistoryAfterSwitches = 5
+    PBG.testSaves = True
 
     #Create the model
     model = models.vit_b_16(num_classes == num_classes)
@@ -222,12 +222,12 @@ def main():
         else:
             model = PB.convertNetwork(model)
                 #Setup a few extra parameters
-        gf.pbTracker.setOptionalParams(
+        PBG.pbTracker.setOptionalParams(
             doingPB = True, #This can be set to false if you want to do just normal training 
             saveName=args.save_name,  # change the save name for different parameter runs
             maximizingScore=True, #true for maximizing score, false for reducing error
             makingGraphs=True,  #true if you want graphs to be saved
-            switchMode = gf.switchMode) #just leave this as is`
+            switchMode = PBG.switchMode) #just leave this as is`
     else:
         PBT.defaultInitPBTracker(False, saveName='noPB')
 
@@ -237,7 +237,7 @@ def main():
     
     
     if(args.dataParallel):
-        model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(gf.device)
+        model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
     print('Running with %d devices' % (torch.cuda.device_count()))
 
 
@@ -245,11 +245,11 @@ def main():
     model = model.to(device)
     
     #Setup the optimizer and scheduler
-    gf.pbTracker.setOptimizer(optim.Adadelta)
-    gf.pbTracker.setScheduler(StepLR)
+    PBG.pbTracker.setOptimizer(optim.Adadelta)
+    PBG.pbTracker.setScheduler(StepLR)
     optimArgs = {'params':model.parameters(),'lr':args.lr}
     schedArgs = {'step_size':1, 'gamma': args.gamma}
-    optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+    optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
 
     #Run your epochs of training and testing

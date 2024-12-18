@@ -38,3 +38,6 @@ Results:
 
     Test Accuracy: 78.10%
 
+Generated Graph should look similar to the following:
+    
+!["Graph of Output](exampleOutput.png "Example Output")

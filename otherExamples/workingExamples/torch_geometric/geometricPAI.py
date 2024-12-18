@@ -26,20 +26,20 @@ from torch.nn import Sequential, Linear, ReLU
 
 from torch_geometric.nn import MessagePassing
 
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
-gf.switchMode = gf.doingHistory # When to switch between Dendrite learning and neuron learning. 
+PBG.switchMode = PBG.doingHistory # When to switch between Dendrite learning and neuron learning. 
 # How many normal epochs to wait for before switching modes.  
 # Make sure this is higher than your scheduler's patience. 
-gf.nEpochsToSwitch = 10  
-gf.pEpochsToSwitch = 10  # Same as above for Dendrite epochs
-gf.inputDimensions = [-1, 0, -1, -1] # The default shape of input tensors
-gf.capAtN = True  # This ensures that Dendrite cycles do not take more epochs than neuron cycles
-gf.device = 'cpu'
-gf.initialCorrelationBatches = 3
-gf.historyLookback = 1
+PBG.nEpochsToSwitch = 10  
+PBG.pEpochsToSwitch = 10  # Same as above for Dendrite epochs
+PBG.inputDimensions = [-1, 0, -1, -1] # The default shape of input tensors
+PBG.capAtN = True  # This ensures that Dendrite cycles do not take more epochs than neuron cycles
+PBG.device = 'cpu'
+PBG.initialCorrelationBatches = 3
+PBG.historyLookback = 1
 
 class PointNetLayer(MessagePassing):
     def __init__(self, in_channels: int, out_channels: int):
@@ -119,7 +119,7 @@ test_loader = DataLoader(test_dataset, batch_size=10)
 
 model = PointNet()
 model = PBU.convertNetwork(model)
-gf.pbTracker.initialize(
+PBG.pbTracker.initialize(
     doingPB = True, #This can be set to false if you want to do just normal training 
     saveName='GeometricPAI',  # Change the save name for different parameter runs
 maximizingScore=True, # True for maximizing validation score, false for minimizing validation loss
@@ -127,9 +127,9 @@ makingGraphs=True)  # True if you want graphs to be saved
 
 #optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-gf.pbTracker.setOptimizer(torch.optim.Adam)
+PBG.pbTracker.setOptimizer(torch.optim.Adam)
 optimArgs = {'params':model.parameters(),'lr':0.01}
-optimizer = gf.pbTracker.setupOptimizer(model, optimArgs)
+optimizer = PBG.pbTracker.setupOptimizer(model, optimArgs)
 
 criterion = torch.nn.CrossEntropyLoss()
 
@@ -169,16 +169,16 @@ while True:
     #Adding train_acc just for graphing purposes
     loss, train_acc = train()
     test_acc = test()
-    gf.pbTracker.addTestScore(test_acc, 'Test Scores')
+    PBG.pbTracker.addTestScore(test_acc, 'Test Scores')
     # Adding training score as the valudation score because without validation the "best" network to test with would have to be picked based on the best training score.
-    model, improved, restructured, trainingComplete = gf.pbTracker.addValidationScore(train_acc, 
+    model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(train_acc, 
     model,
     'GeometricPAI')
     if(trainingComplete):
         break
     elif(restructured): 
         optimArgs = {'params':model.parameters(),'lr':0.01}
-        optimizer = gf.pbTracker.setupOptimizer(model, optimArgs)
+        optimizer = PBG.pbTracker.setupOptimizer(model, optimArgs)
     print(f'Epoch: {epoch:02d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')
     epoch += 1
 print(f'Final: {epoch:02d}, Loss: {loss:.4f}, Train Acc: {train_acc:.4f}, Test Acc: {test_acc:.4f}')

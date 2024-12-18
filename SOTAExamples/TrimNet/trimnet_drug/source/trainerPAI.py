@@ -12,7 +12,7 @@ from torch_geometric.nn import DataParallel
 from tqdm import tqdm
 from utils import FocalLoss
 
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
@@ -75,11 +75,11 @@ class Trainer:
                 )
                 for w in weight
             ]
-        gf.pbTracker.setOptimizer(torch.optim.Adam)
-        gf.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
+        PBG.pbTracker.setOptimizer(torch.optim.Adam)
+        PBG.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
         optimArgs = {'params':self.model.parameters(),'lr':self.option['lr'],'weight_decay':self.option['weight_decay']}
         schedArgs = {'mode':'max', 'patience': self.option['lr_scheduler_patience'], 'factor':0.7, 'min_lr':1e-6}
-        self.optimizer, self.scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+        self.optimizer, self.scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
         
 
         # other
@@ -253,14 +253,14 @@ class Trainer:
             val_loss, val_roc, val_prc = self.valid_iterations()
             test_loss, test_roc, test_prc = self.valid_iterations(mode="test")
 
-            gf.pbTracker.addExtraScore(trn_roc, 'train roc')
-            gf.pbTracker.addExtraScore(trn_prc, 'train prc')
-            gf.pbTracker.addExtraScore(val_prc, 'val prc')
-            gf.pbTracker.addTestScore(test_roc, 'test roc')
-            gf.pbTracker.addExtraScore(test_prc, 'test prc')
+            PBG.pbTracker.addExtraScore(trn_roc, 'train roc')
+            PBG.pbTracker.addExtraScore(trn_prc, 'train prc')
+            PBG.pbTracker.addExtraScore(val_prc, 'val prc')
+            PBG.pbTracker.addTestScore(test_roc, 'test roc')
+            PBG.pbTracker.addExtraScore(test_prc, 'test prc')
 
 
-            self.model, improved, restructured, trainingComplete = gf.pbTracker.addValidationScore(val_roc, self.model, 'PB')
+            self.model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_roc, self.model, 'PB')
 
             self.model.to(self.device)
             if(trainingComplete):
@@ -269,7 +269,7 @@ class Trainer:
             if(restructured):
                 optimArgs = {'params':self.model.parameters(),'lr':self.option['lr'],'weight_decay':self.option['weight_decay']}
                 schedArgs = {'mode':'max', 'patience': self.option['lr_scheduler_patience'], 'factor':0.7, 'min_lr':1e-6}
-                self.optimizer, self.scheduler = gf.pbTracker.setupOptimizer(self.model, optimArgs, schedArgs)
+                self.optimizer, self.scheduler = PBG.pbTracker.setupOptimizer(self.model, optimArgs, schedArgs)
 
 
             lr_cur = self.scheduler.optimizer.param_groups[0]["lr"]

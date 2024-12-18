@@ -29,7 +29,7 @@ from model import MLP, HIST
 from utils import metric_fn, mse
 from dataloader import DataLoader
 
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
@@ -228,17 +228,17 @@ def create_loaders(args):
 
 def main(args):
     
-    gf.switchMode = gf.doingHistory # This is when to switch between PAI and regular learning
-    gf.nodeIndex = 1 # This is the index of the nodes within a layer    
-    gf.inputDimensions = [args.batch_size/torch.cuda.device_count(), 0, -1, -1] #this is the shape of inputs, for a standard conv net this will work
-    gf.nEpochsToSwitch = 10  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
-    gf.pEpochsToSwitch = 10  #Same as above for PAI epochs
-    gf.testSaves = True
+    PBG.switchMode = PBG.doingHistory # This is when to switch between PAI and regular learning
+    PBG.nodeIndex = 1 # This is the index of the nodes within a layer    
+    PBG.inputDimensions = [args.batch_size/torch.cuda.device_count(), 0, -1, -1] #this is the shape of inputs, for a standard conv net this will work
+    PBG.nEpochsToSwitch = 10  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
+    PBG.pEpochsToSwitch = 10  #Same as above for PAI epochs
+    PBG.testSaves = True
     #This is needed because a couple layers dont get passed all the way to the end
-    gf.checkedSkippedLayers = True
-    gf.missedOnesConfirmed = True
-    gf.historyLookback = 5
-    gf.capAtN = False
+    PBG.checkedSkippedLayers = True
+    PBG.missedOnesConfirmed = True
+    PBG.historyLookback = 5
+    PBG.capAtN = False
     
     seed = args.seed
     np.random.seed(seed)
@@ -288,7 +288,7 @@ def main(args):
             model = get_model(args.model_name)(d_feat = args.d_feat, num_layers = args.num_layers)
         
         model = PBU.convertNetwork(model)
-        gf.pbTracker.initialize(
+        PBG.pbTracker.initialize(
             doingPB = True, #This can be set to false if you want to do just normal training 
             saveName='PB_HIST',  # change the save name for different parameter runs
             maximizingScore=True, #true for maximizing score, false for reducing error
@@ -297,9 +297,9 @@ def main(args):
     
             
         model.to(device)
-        gf.pbTracker.setOptimizer(optim.Adam)
+        PBG.pbTracker.setOptimizer(optim.Adam)
         optimArgs = {'params':model.parameters(),'lr':args.lr}
-        optimizer = gf.pbTracker.setupOptimizer(model, optimArgs)
+        optimizer = PBG.pbTracker.setupOptimizer(model, optimArgs)
 
         best_score = -np.inf
         best_epoch = 0
@@ -337,16 +337,16 @@ def main(args):
             pprint('Valid Recall: ', val_recall)
             pprint('Test Recall: ', test_recall)
             
-            gf.pbTracker.addExtraScore(train_precision[1], 'Train Precision')
-            gf.pbTracker.addTestScore(test_precision[1], 'Test Precision1')
-            gf.pbTracker.addExtraScore(test_precision[3], 'Test Precision3')
-            gf.pbTracker.addExtraScore(test_precision[5], 'Test Precision5')
-            gf.pbTracker.addExtraScore(test_precision[10], 'Test Precision10')
-            gf.pbTracker.addExtraScore(test_precision[20], 'Test Precision20')
-            gf.pbTracker.addExtraScore(test_precision[30], 'Test Precision30')
-            gf.pbTracker.addExtraScore(test_precision[50], 'Test Precision50')
-            gf.pbTracker.addExtraScore(test_precision[100], 'Test Precision100')
-            model, improved, restructured, trainingComplete = gf.pbTracker.addValidationScore(val_precision[1], 
+            PBG.pbTracker.addExtraScore(train_precision[1], 'Train Precision')
+            PBG.pbTracker.addTestScore(test_precision[1], 'Test Precision1')
+            PBG.pbTracker.addExtraScore(test_precision[3], 'Test Precision3')
+            PBG.pbTracker.addExtraScore(test_precision[5], 'Test Precision5')
+            PBG.pbTracker.addExtraScore(test_precision[10], 'Test Precision10')
+            PBG.pbTracker.addExtraScore(test_precision[20], 'Test Precision20')
+            PBG.pbTracker.addExtraScore(test_precision[30], 'Test Precision30')
+            PBG.pbTracker.addExtraScore(test_precision[50], 'Test Precision50')
+            PBG.pbTracker.addExtraScore(test_precision[100], 'Test Precision100')
+            model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_precision[1], 
                 model,
                 'PB_HIST')
             model.to(device)
@@ -354,7 +354,7 @@ def main(args):
                 break
             if(restructured):
                 optimArgs = {'params':model.parameters(),'lr':args.lr}
-                optimizer = gf.pbTracker.setupOptimizer(model, optimArgs)
+                optimizer = PBG.pbTracker.setupOptimizer(model, optimArgs)
             '''
             model.load_state_dict(params_ckpt)
 

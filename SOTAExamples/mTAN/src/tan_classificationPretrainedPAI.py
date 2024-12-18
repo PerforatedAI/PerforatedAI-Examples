@@ -7,16 +7,15 @@ import torch.optim as optim
 import random
 import time
 
+from perforatedai import pb_network as PN
+from perforatedai import pb_globals as PBG
+
 from random import SystemRandom
 import modelsPAI as models
 import utils
 
-from perforatedai import pb_globals as PBG
-from perforatedai import pb_models as PBM
-from perforatedai import pb_utils as PBU
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--niters', type=int, default=200000)
+parser.add_argument('--niters', type=int, default=2000)
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--std', type=float, default=0.01)
 parser.add_argument('--latent-dim', type=int, default=32)
@@ -52,23 +51,6 @@ parser.add_argument('--classify-pertp', action='store_true')
 parser.add_argument('--multiplier', type=float, default=1)
 
 args = parser.parse_args()
-
-
-PBG.paramValsSetting = PBG.paramValsByUpdateEpoch
-
-PBG.switchMode = PBG.doingFixedSwitch
-PBG.fixedSwitchNum = 200
-PBG.firstFixedSwitchNum = 199
-
-PBG.nodeIndex = 2
-PBG.inputDimensions = [-1, -1, 0]
-PBG.initialCorrelationBatches = 25
-PBG.capAtN = False #Makes sure subsequent rounds last max as long as first round
-#PBG.historyLookback = 1
-
-PBG.modulesToConvert.append(models.multiTimeAttention)
-PBG.maxDendriteTries = 1
-PBG.maxDendrites = 3
 
 class GRUCellProcessor():
     #Post processing does eventually need to return h_t and c__t, but h_t gets modified py the PB
@@ -127,8 +109,10 @@ class ReverseGRUCellProcessor():
             if(not getattr(self,var,None) is None):
                 delattr(self,var)
 
-PBG.modulesToConvert.append(models.mtan_time_embedder)
+PBG.inputDimensions = [-1, -1, 0]
 
+PBG.modulesToConvert.append(models.mtan_time_embedder)
+PBG.modulesToConvert.append(models.multiTimeAttention)
 PBG.modulesToConvert.append(nn.GRU)
 PBG.modluesWithProcessing.append(nn.GRU)
 PBG.moduleProcessingClasses.append(GRUCellProcessor)
@@ -145,6 +129,7 @@ class fullModel(nn.Module):
         self.classifier = classifier
         
     def forward(self, observed_data, observed_mask, observed_tp):
+        #import pdb; pdb.set_trace()
         out = self.rec(torch.cat((observed_data, observed_mask), 2), observed_tp)
         qz0_mean, qz0_logvar = out[:, :, :args.latent_dim], out[:, :, args.latent_dim:]
         epsilon = torch.randn(args.k_iwae, qz0_mean.shape[0], qz0_mean.shape[1], qz0_mean.shape[2]).to(device)
@@ -155,9 +140,6 @@ class fullModel(nn.Module):
             z0, observed_tp[None, :, :].repeat(args.k_iwae, 1, 1).view(-1, observed_tp.shape[1]))
         pred_x = pred_x.view(args.k_iwae, batch_len, pred_x.shape[1], pred_x.shape[2]) #nsample, batch, seqlen, dim
         return pred_x, pred_y, qz0_mean, qz0_logvar
-
-
-
 if __name__ == '__main__':
     experiment_id = int(SystemRandom().random()*100000)
     print(args, experiment_id)
@@ -203,16 +185,13 @@ if __name__ == '__main__':
         dec = models.dec_mtan_rnn(
             dim, torch.linspace(0, 1., args.num_ref_points), args.latent_dim, args.gen_hidden, 
             embed_time=embed_time, learn_emb=args.learn_emb, num_heads=args.dec_num_heads, device=device).to(device)
-    
     classifier = models.create_classifier(args.latent_dim, internal, args.rec_hidden).to(device)
     
     model = fullModel(rec, dec, classifier)
     
+    model = PN.loadPAIModel(model, 'mTANPB/best_model_beforeSwitch_pai_5.pt').to('cuda')
+    
     if(args.justTest):
-        #model = PBU.loadSystem(model, 'mTANPB','best_model')
-        from perforatedai import pb_network as PN
-        model = PN.loadPAIModel(model, 'mTANPB/best_model_pai.pt').to('cuda')
-
         model.eval()
         test_loss, test_acc, test_auc = utils.evaluate_classifier(
             model.rec, test_loader, args=args, classifier=model.classifier, reconst=True, num_sample=1, dim=dim, device=device)
@@ -225,24 +204,16 @@ if __name__ == '__main__':
         
         
         import pdb; pdb.set_trace()
-        exit(0)
-    
-    
-    model = PBU.convertNetwork(model)
+        exit(0)    
 
-    PBG.pbTracker.initialize(doingPB = True, saveName='mTANPB', maximizingScore=True, makingGraphs=True)
 
-    model.classifier.classifier[0].setThisInputDimensions([-1, 0])
-    model.classifier.classifier[2].setThisInputDimensions([-1, 0])
-    model.classifier.classifier[4].setThisInputDimensions([-1, 0])
+    params = (list(rec.parameters()) + list(dec.parameters()) + list(classifier.parameters()))
+    print('parameters:', utils.count_parameters(rec), utils.count_parameters(dec), utils.count_parameters(classifier))
+    optimizer = optim.Adam(params, lr=args.lr)
     
-    PBG.pbTracker.setOptimizer(optim.Adam)
-    optimArgs = {'params':model.parameters(),'lr':args.lr}
-    
-    PBG.pbTracker.setScheduler(torch.optim.lr_scheduler.MultiStepLR)
-    schedArgs = {'milestones':[50,100,150], 'gamma':0.2}
+    # NOTE: Might be a good idea to play around with a scheduler for PAI as well
 
-    optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+
     criterion = nn.CrossEntropyLoss()
     
     if args.fname is not None:
@@ -254,11 +225,6 @@ if __name__ == '__main__':
 
     best_val_loss = float('inf')
     total_time = 0.
-    
-    
-
-    
-    
     for itr in range(1, args.niters + 1):
         train_recon_loss, train_ce_loss = 0, 0
         mse = 0
@@ -279,11 +245,7 @@ if __name__ == '__main__':
             batch_len  = train_batch.shape[0]
             observed_data, observed_mask, observed_tp \
                 = train_batch[:, :, :dim], train_batch[:, :, dim:2*dim], train_batch[:, :, -1]
-
-
-            
             pred_x, pred_y, qz0_mean, qz0_logvar = model(observed_data, observed_mask, observed_tp)
-            
             
             # compute loss
             logpx, analytic_kl = utils.compute_losses(
@@ -295,7 +257,6 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            
             
             train_ce_loss += ce_loss.item() * batch_len
             train_recon_loss += recon_loss.item() * batch_len
@@ -322,23 +283,7 @@ if __name__ == '__main__':
         print('Iter: {}, recon_loss: {:.4f}, ce_loss: {:.4f}, acc: {:.4f}, mse: {:.4f}, val_loss: {:.4f}, val_acc: {:.4f}, test_acc: {:.4f}, test_auc: {:.4f}'
               .format(itr, train_recon_loss/train_n, train_ce_loss/train_n, 
                       train_acc/train_n, mse/train_n, val_loss, val_acc, test_acc, test_auc))
-
-        train_acc = train_acc/train_n
-        PBG.pbTracker.addExtraScore(train_acc, 'train_acc')
-        PBG.pbTracker.addExtraScore(val_acc, 'val_acc')
-        PBG.pbTracker.addTestScore(test_auc, 'test_auc')
-        PBG.pbTracker.addExtraScore(test_acc, 'test_acc')
         
-        model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_auc, model, 'mTANPB')
-        model.to(device)
-        if(trainingComplete):
-            break
-        if(restructured):
-            optimArgs = {'params':model.parameters(),'lr':args.lr}
-            schedArgs = {'milestones':[50,100,150], 'gamma':0.2}
-
-            optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
-            
             
         if itr % 100 == 0 and args.save:
             torch.save({

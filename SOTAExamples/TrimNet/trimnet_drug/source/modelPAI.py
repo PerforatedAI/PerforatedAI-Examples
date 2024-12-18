@@ -10,7 +10,7 @@ from torch_geometric.nn import Set2Set
 from torch_geometric.nn.conv import MessagePassing
 from torch_geometric.utils import softmax
 
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
@@ -138,7 +138,7 @@ class TrimNet(torch.nn.Module):
         self.set2set = Set2Set(hidden_dim, processing_steps=3)
         # self.lin1 = torch.nn.Linear(2 * hidden_dim, 2)
         self.out = nn.Sequential(
-            gf.PBSequential([nn.Linear(2 * hidden_dim, 512),
+            PBG.PBSequential([nn.Linear(2 * hidden_dim, 512),
             nn.LayerNorm(512)]),
             nn.ReLU(inplace=True),
             nn.Dropout(p=self.dropout),

@@ -108,6 +108,7 @@ class enc_mtan_rnn(nn.Module):
             nn.Linear(nlin, latent_dim * 2))
         if learn_emb:
             self.embedder1 = mtan_time_embedder(self.device, embed_time)
+            # Splitting this up into two embedders becuase PAI doesn't like having the same layers called more than once in the same forward.
             self.embedder2 = mtan_time_embedder(self.device, embed_time)
     
     def learn_time_embedding(self, tt):

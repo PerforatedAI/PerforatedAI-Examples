@@ -14,32 +14,71 @@ from torch_geometric.loader import NeighborLoader
 from torch_geometric.utils import to_undirected
 
 #Include Perforated AI imports
-from perforatedai import globalsFile as gf
+from perforatedai import pb_globals as PBG
 from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
+
+'''
+PAI README:
+
+Run docker from torch_geometric directory
+
+   docker run --gpus all -i --shm-size=8g -v .:/pai -w /pai -t nvcr.io/nvidia/pyg:24.11-py3 /bin/bash
+
+Within Docker
+
+    pip install -e .
+    cd examples
+    pip install PAI wheel file
+    
+Run original with:
+
+    CUDA_VISIBLE_DEVICES=0 python ogbn_train_original.py --dataset ogbn-products --batch_size 128
+
+Results:
+
+    Test Accuracy: 75.52%
+    
+Run original scheduler with:
+
+    CUDA_VISIBLE_DEVICES=0 python ogbn_train_scheduler.py --dataset ogbn-products --batch_size 128
+
+Results:
+
+    Test Accuracy: 77.51%
+    
+    
+Run PAI with:
+
+    CUDA_VISIBLE_DEVICES=0 python ogbn_trainPAI.py --dataset ogbn-products --batch_size 128 --saveName ogbnPAI
+    
+Results:
+
+    Test Accuracy: 78.10%
+'''
 
 
 # Set Perforated Backpropagation settings for this training run
 
 # When to switch between Dendrite learning and neuron learning is determined by when the history of validation score or correlation scores shows those scores are no longer improving
-gf.switchMode = gf.doingHistory 
+PBG.switchMode = PBG.doingHistory 
 # When calculating that just look at the current score, not a recent average
-gf.historyLookback = 1
+PBG.historyLookback = 1
 # How many normal epochs to wait for before switching modes.  
-gf.nEpochsToSwitch = 25  
-gf.pEpochsToSwitch = 15  # Same as above for Dendrite epochs
+PBG.nEpochsToSwitch = 25  
+PBG.pEpochsToSwitch = 15  # Same as above for Dendrite epochs
 # The default shape of input tensors will be [batch size, number of neurons in the layer]
-gf.inputDimensions = [-1, 0]
+PBG.inputDimensions = [-1, 0]
 # This allows Dendrites to train as long as they keep improving rather than capping
 # Dendrite training cycles to only be as long as the first neuron training cycle.
-gf.capAtN = False  
+PBG.capAtN = False  
 # Stop the run after 3 dendrites are created
-gf.maxDendrites = 4
+PBG.maxDendrites = 4
 # If a set of Dendrites does not improve the system try it 3 times before giving up
-gf.maxDendriteTries = 2
+PBG.maxDendriteTries = 2
 # Make sure correlation scores improve from epoch to epoch by at least 25% and a raw value of 1e-4 to conclude that the correlation scores have gone up.
-gf.pbImprovementThreshold = 0.25
-gf.pbImprovementThresholdRaw = 1e-4
+PBG.pbImprovementThreshold = 0.25
+PBG.pbImprovementThresholdRaw = 1e-4
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter, )
@@ -233,7 +272,7 @@ else:
     )
 
 # Set SAGEConv to be a module to create Dendrite versions of
-gf.moduleNamesToConvert.append('SAGEConv')
+PBG.moduleNamesToConvert.append('SAGEConv')
 model = model.to(device)
 # Moing this to be called before convert network since it changes some pointers
 model.reset_parameters()
@@ -244,7 +283,7 @@ model = PBU.convertNetwork(model)
 
 # This initializes the Perforated Backpropagation Tracker object which organizes
 # communication between each individual Dendrite convereted module within a full network
-gf.pbTracker.initialize(
+PBG.pbTracker.initialize(
     doingPB = args.doingPB, #This can be set to false if you want to do just normal training 
     saveName=args.saveName,  # Change the save name for different parameter runs
 maximizingScore=True, # True for maximizing validation score, false for minimizing validation loss
@@ -252,11 +291,11 @@ makingGraphs=True)  # True if you want graphs to be saved
 
 # This change is required since the PBTracker object handles the scheduler
 # All values are the same, just bassed in as kwargs
-gf.pbTracker.setOptimizer(torch.optim.Adam)
-gf.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
+PBG.pbTracker.setOptimizer(torch.optim.Adam)
+PBG.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
 schedArgs = {'mode':'max', 'patience': 5}
 optimArgs = {'params':model.parameters(),'lr':args.lr, 'weight_decay':args.wd}
-optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
 
 if verbose:
@@ -310,7 +349,7 @@ for epoch in range(1, num_epochs + 1):
     '''
     val_count = None
     test_count = 308 # num val samples
-    if(gf.pbTracker.memberVars['mode'] == 'p'):
+    if(PBG.pbTracker.memberVars['mode'] == 'p'):
         val_count = 5
         test_count = 5
     val_acc = test(val_loader, val_count)
@@ -329,8 +368,8 @@ for epoch in range(1, num_epochs + 1):
         best_test = test_acc
     times.append(time.time() - train_start)
     # Add the extra scores to be graphed
-    gf.pbTracker.addExtraScore(train_acc, 'Train Accuracy')
-    gf.pbTracker.addTestScore(test_acc, 'Test Accuracy')
+    PBG.pbTracker.addExtraScore(train_acc, 'Train Accuracy')
+    PBG.pbTracker.addTestScore(test_acc, 'Test Accuracy')
     
     '''
     Add the validation score
@@ -342,7 +381,7 @@ for epoch in range(1, num_epochs + 1):
     restructured - If a restructing did happen
     trainingComplete - if the tracker has determined that this is the final model to use
     '''
-    model, improved, restructured, trainingComplete = gf.pbTracker.addValidationScore(val_acc, 
+    model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_acc, 
     model,
     args.saveName)
     # Need to setup GPU settings of the new model
@@ -354,7 +393,7 @@ for epoch in range(1, num_epochs + 1):
     elif(restructured):
         schedArgs = {'mode':'max', 'patience': 5} #Make sure this is lower than epochs to switch
         optimArgs = {'params':model.parameters(),'lr':args.lr, 'weight_decay':args.wd}
-        optimizer, scheduler = gf.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+        optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
 if verbose:
     test_acc = torch.tensor(test_accs)
