@@ -189,7 +189,7 @@ if __name__ == '__main__':
     
     model = fullModel(rec, dec, classifier)
     
-    model = PN.loadPAIModel(model, 'mTANPB/best_model_beforeSwitch_pai_5.pt').to('cuda')
+    model = PN.loadPAIModel(model, 'mTANPB/best_model_pai.pt').to('cuda')
     
     if(args.justTest):
         model.eval()

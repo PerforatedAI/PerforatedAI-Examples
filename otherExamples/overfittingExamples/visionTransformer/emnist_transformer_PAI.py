@@ -75,13 +75,13 @@ def test(model, device, test_loader, optimizer, scheduler, args):
 
     if(args.dataParallel):
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
         model.module,
         args.save_name) 
         model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
     else:
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
         model,
         args.save_name) 
         model.to(device)
@@ -91,7 +91,7 @@ def test(model, device, test_loader, optimizer, scheduler, args):
         schedArgs = {'step_size':1, 'gamma': args.gamma}
         optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
-    return model, optimizer, scheduler
+    return model, optimizer, scheduler, trainingComplete
 
 
 def main():
@@ -196,7 +196,22 @@ def main():
         dataset2 = datasets.EMNIST(root='./data',  split='balanced', train=False, download=True, transform=transform_test)
         train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
-
+    if(args.dataset == 'cifar100'):
+        num_classes = 100
+        image_size = 32
+        #Define the data loaders
+        transform=transforms.Compose([
+                    transforms.Resize((image_size,image_size)),
+                    transforms.RandomRotation(10),      
+                    transforms.RandomAffine(5),
+                    transforms.ToTensor()
+            ])
+        dataset1 = datasets.CIFAR100('./data', train=True, download=True,
+                        transform=transform)
+        dataset2 = datasets.CIFAR100('./data', train=False,
+                        transform=transform)
+        train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
+        test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
     #Set up some global parameters for PAI code
     PBG.switchMode = PBG.doingHistory # This is when to switch between PAI and regular learning
     #PBG.retainAllPB = True
@@ -211,7 +226,7 @@ def main():
     PBG.moduleNamesToConvert.append('EncoderBlock')
 
     #Create the model
-    model = models.vit_b_16(num_classes == num_classes, image_size=224, hidden_dim=384)
+    model = models.vit_b_16(num_classes == num_classes, image_size=32, hidden_dim=60)
     model = PAImodels.VisionTransformer(model)
     if(args.dataParallel):
         PB.newDataParallel = True
@@ -219,20 +234,20 @@ def main():
     if(args.doingPB):
         #Convert the network to be a PAI Network
         if(args.test_head):
-            model.fc2 = PB.convertNetwork(model.fc2, layerName = 'layer2')
+            model.fc2 = PBU.convertNetwork(model.fc2, layerName = 'layer2')
         if(args.test_backbone):
-            model.conv1 = PB.convertNetwork(model.conv1, layerName = 'layer2')
-            model.conv2 = PB.convertNetwork(model.conv2, layerName = 'layer2')
-            model.fc1 = PB.convertNetwork(model.fc1, layerName = 'layer2')
+            model.conv1 = PBU.convertNetwork(model.conv1, layerName = 'layer2')
+            model.conv2 = PBU.convertNetwork(model.conv2, layerName = 'layer2')
+            model.fc1 = PBU.convertNetwork(model.fc1, layerName = 'layer2')
         else:
-            model = PB.convertNetwork(model)
+            model = PBU.convertNetwork(model)
                 #Setup a few extra parameters
-        PBG.pbTracker.setOptionalParams(
+        PBG.pbTracker.initialize(
             doingPB = True, #This can be set to false if you want to do just normal training 
             saveName=args.save_name,  # change the save name for different parameter runs
             maximizingScore=True, #true for maximizing score, false for reducing error
-            makingGraphs=True,  #true if you want graphs to be saved
-            switchMode = PBG.switchMode) #just leave this as is`
+            makingGraphs=True)  #true if you want graphs to be saved
+            
     else:
         PBT.defaultInitPBTracker(False, saveName='noPB')
 
@@ -251,16 +266,18 @@ def main():
     
     #Setup the optimizer and scheduler
     PBG.pbTracker.setOptimizer(optim.Adadelta)
-    PBG.pbTracker.setScheduler(StepLR)
+    PBG.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
     optimArgs = {'params':model.parameters(),'lr':args.lr}
-    schedArgs = {'step_size':1, 'gamma': args.gamma}
+    schedArgs = {'mode':'max', 'patience': 5} #Make sure this is lower than epochs to switch
     optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
 
     #Run your epochs of training and testing
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        model, optimizer, scheduler = test(model, device, test_loader, optimizer, scheduler, args)
+        model, optimizer, scheduler, trainingComplete = test(model, device, test_loader, optimizer, scheduler, args)
+        if(trainingComplete):
+            break
         #scheduler.step()
 
     if args.save_model:

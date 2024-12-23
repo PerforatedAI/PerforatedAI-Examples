@@ -15,20 +15,11 @@ Within Docker
     
 Run original with:
 
-    CUDA_VISIBLE_DEVICES=0 python ogbn_train_original.py --dataset ogbn-products --batch_size 128
+    CUDA_VISIBLE_DEVICES=0 python ogbn_train.py --dataset ogbn-products --batch_size 128
 
 Results:
 
-    Test Accuracy: 75.52%
-    
-Run original scheduler with:
-
-    CUDA_VISIBLE_DEVICES=0 python ogbn_train_scheduler.py --dataset ogbn-products --batch_size 128
-
-Results:
-
-    Test Accuracy: 77.51%
-    
+    Test Accuracy: 77.19%
     
 Run PAI with:
 
@@ -36,7 +27,7 @@ Run PAI with:
     
 Results:
 
-    Test Accuracy: 78.10%
+    Test Accuracy: 78.29%
 
 Generated Graph should look similar to the following:
     
