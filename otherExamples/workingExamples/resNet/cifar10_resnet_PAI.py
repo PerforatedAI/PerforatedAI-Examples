@@ -27,8 +27,6 @@ def train(args, model, device, train_loader, optimizer, epoch):
         loss = F.cross_entropy(output, target)
         #Backpropagate the error through the network
         loss.backward()
-        if(args.dataParallel):
-            model.gatherData()
         #Modify the weights based on the calculated gradient
         optimizer.step()
         #Display Metrics
@@ -99,8 +97,6 @@ def main():
                         help='learning rate (default: 1.0)')
     parser.add_argument('--gamma', type=float, default=0.7, metavar='M',
                         help='Learning rate step gamma (default: 0.7)')
-    parser.add_argument('--width', type=float, default=1.0, metavar='M',
-                        help='width multiplier')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--no-mps', action='store_true', default=False,
@@ -109,22 +105,10 @@ def main():
                         help='quickly check a single pass')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--dataParallel', type=int, default=0,
-                        help='using data parallel with multi gpus')
-    parser.add_argument('--pretrained', type=str, default='',
-                        help='path to a pretrained model')
-    parser.add_argument('--test-head', type=int, default=0,
-                        help='if true only test converting the head of the network')
-    parser.add_argument('--test-backbone', type=int, default=0,
-                        help='if true only test converting the backbone of the network')
-    parser.add_argument('--doingPB', type=int, default=1,
-                        help='if false dont convert model')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
-
-
     args = parser.parse_args()
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     use_mps = not args.no_mps and torch.backends.mps.is_available()
@@ -160,6 +144,9 @@ def main():
                     transform=transform)
     train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
+
+
+
     #Set up some global parameters for PAI code
     PBG.switchMode = PBG.doingHistory # This is when to switch between PAI and regular learning
     #PBG.retainAllPB = True
@@ -188,10 +175,6 @@ def main():
         maximizingScore=True, #true for maximizing score, false for reducing error
         makingGraphs=True)
         
-
-    if(args.dataParallel):
-        model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
-    print('Running with %d devices' % (torch.cuda.device_count()))
 
     model = model.to(device)
     
