@@ -88,7 +88,7 @@ def test(model, device, test_loader, optimizer, scheduler, args):
     #If it was restructured reset the optimizer and scheduler
     if(restructured): 
         optimArgs = {'params':model.parameters(),'lr':args.lr}
-        schedArgs = {'step_size':1, 'gamma': args.gamma}
+        schedArgs = {'mode':'max', 'patience': 5} #Make sure this is lower than epochs to
         optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
     return model, optimizer, scheduler, trainingComplete
@@ -172,10 +172,10 @@ def main():
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
     elif(args.dataset == 'EMNIST'):
         num_classes = 47
-        image_size = 224
+        image_size = 32
         transform_train = transforms.Compose(
                 [ 
-                    transforms.CenterCrop(26),
+                    #transforms.CenterCrop(26),
                     transforms.Resize((image_size,image_size)),
                     transforms.RandomRotation(10),      
                     transforms.RandomAffine(5),
@@ -185,7 +185,7 @@ def main():
                 ])
         transform_test = transforms.Compose(
                 [ 
-                transforms.Resize((image_size,image_size)),
+                    transforms.Resize((image_size,image_size)),
                     transforms.ToTensor(),
                  transforms.Lambda(lambda x: x.repeat(3, 1, 1) ),
             transforms.Normalize((0.1307,), (0.3081,)),
@@ -196,19 +196,17 @@ def main():
         dataset2 = datasets.EMNIST(root='./data',  split='balanced', train=False, download=True, transform=transform_test)
         train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
-    if(args.dataset == 'cifar100'):
-        num_classes = 100
+    if(args.dataset == 'cifar10'):
+        num_classes = 10
         image_size = 32
         #Define the data loaders
         transform=transforms.Compose([
                     transforms.Resize((image_size,image_size)),
-                    transforms.RandomRotation(10),      
-                    transforms.RandomAffine(5),
                     transforms.ToTensor()
             ])
-        dataset1 = datasets.CIFAR100('./data', train=True, download=True,
+        dataset1 = datasets.CIFAR10('./data', train=True, download=True,
                         transform=transform)
-        dataset2 = datasets.CIFAR100('./data', train=False,
+        dataset2 = datasets.CIFAR10('./data', train=False,
                         transform=transform)
         train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
@@ -222,11 +220,14 @@ def main():
     PBG.capAtN = True #Makes sure subsequent rounds last max as long as first round
     PBG.initialHistoryAfterSwitches = 5
     PBG.testSaves = True
-
+    PBG.unwrappedModulesConfirmed = True
     PBG.moduleNamesToConvert.append('EncoderBlock')
 
+
+
+
     #Create the model
-    model = models.vit_b_16(num_classes == num_classes, image_size=32, hidden_dim=60)
+    model = models.vit_b_16(num_classes == num_classes, image_size=32, hidden_dim=24)
     model = PAImodels.VisionTransformer(model)
     if(args.dataParallel):
         PB.newDataParallel = True
@@ -260,6 +261,8 @@ def main():
         model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
     print('Running with %d devices' % (torch.cuda.device_count()))
 
+
+    #model = PBU.loadSystem(model, args.save_name, 'latest', True)
 
 
     model = model.to(device)

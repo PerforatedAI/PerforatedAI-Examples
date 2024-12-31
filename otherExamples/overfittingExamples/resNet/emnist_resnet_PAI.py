@@ -71,32 +71,24 @@ def test(model, device, test_loader, optimizer, scheduler, args):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
-    if(args.dataParallel):
-        #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
-        model.module,
-        args.save_name) 
-        model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
-    else:
-        #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
-        model,
-        args.save_name) 
-        model.to(device)
+    #Add the new score to the tracker which may restructured the model with PB Nodes
+    model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+    model,
+    args.save_name) 
+    model.to(device)
     #If it was restructured reset the optimizer and scheduler
     if(restructured): 
         optimArgs = {'params':model.parameters(),'lr':args.lr}
         schedArgs = {'step_size':1, 'gamma': args.gamma}
         optimizer, scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
 
-    return model, optimizer, scheduler
+    return model, optimizer, scheduler, trainingComplete
 
 
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--save-name', type=str, default='PB')
-    parser.add_argument('--dataset', type=str, default='EMNIST')
     parser.add_argument('--batch-size', type=int, default=4, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=4, metavar='N',
@@ -155,46 +147,19 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    if(args.dataset == 'MNIST'):
-        num_classes = 10
-        #Define the data loaders
-        transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-            ])
-        dataset1 = datasets.MNIST('./data', train=True, download=True,
-                        transform=transform)
-        dataset2 = datasets.MNIST('./data', train=False,
-                        transform=transform)
-        train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
-        test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
-    elif(args.dataset == 'EMNIST'):
-        num_classes = 47
-        image_size = 224
-        transform_train = transforms.Compose(
-                [ 
-                    transforms.CenterCrop(26),
-                    transforms.Resize((image_size,image_size)),
-                    transforms.RandomRotation(10),      
-                    transforms.RandomAffine(5),
-                    transforms.ToTensor(),
-                    transforms.Lambda(lambda x: x.repeat(3, 1, 1) ),
-                transforms.Normalize((0.1307,), (0.3081,)),
-                ])
-        transform_test = transforms.Compose(
-                [ 
+    num_classes = 10
+    image_size = 32
+    #Define the data loaders
+    transform=transforms.Compose([
                 transforms.Resize((image_size,image_size)),
-                    transforms.ToTensor(),
-                 transforms.Lambda(lambda x: x.repeat(3, 1, 1) ),
-            transforms.Normalize((0.1307,), (0.3081,)),
-                ])
-        #Dataset
-        dataset1 = datasets.EMNIST(root='./data', split='balanced', train=True, download=True, transform=transform_train)
-
-        dataset2 = datasets.EMNIST(root='./data',  split='balanced', train=False, download=True, transform=transform_test)
-        train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
-        test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
-
+                transforms.ToTensor()
+        ])
+    dataset1 = datasets.CIFAR10('./data', train=True, download=True,
+                    transform=transform)
+    dataset2 = datasets.CIFAR10('./data', train=False,
+                    transform=transform)
+    train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
+    test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
     #Set up some global parameters for PAI code
     PBG.switchMode = PBG.doingHistory # This is when to switch between PAI and regular learning
     #PBG.retainAllPB = True
@@ -206,43 +171,27 @@ def main():
     PBG.initialHistoryAfterSwitches = 5
     PBG.testSaves = True
 
-
+    PBG.moduleNamesToConvert.append('BasicBlock')
+    
     #Create the model
     model = models.resnet18(num_classes == num_classes)
     model = PBM.ResNetPB(model)
     if(args.dataParallel):
         PB.newDataParallel = True
     
-    if(args.doingPB):
-        #Convert the network to be a PAI Network
-        if(args.test_head):
-            model.fc2 = PB.convertNetwork(model.fc2, layerName = 'layer2')
-        if(args.test_backbone):
-            model.conv1 = PB.convertNetwork(model.conv1, layerName = 'layer2')
-            model.conv2 = PB.convertNetwork(model.conv2, layerName = 'layer2')
-            model.fc1 = PB.convertNetwork(model.fc1, layerName = 'layer2')
-        else:
-            model = PB.convertNetwork(model)
+
+    model = PBU.convertNetwork(model)
                 #Setup a few extra parameters
-        PBG.pbTracker.setOptionalParams(
-            doingPB = True, #This can be set to false if you want to do just normal training 
-            saveName=args.save_name,  # change the save name for different parameter runs
-            maximizingScore=True, #true for maximizing score, false for reducing error
-            makingGraphs=True,  #true if you want graphs to be saved
-            switchMode = PBG.switchMode) #just leave this as is`
-    else:
-        PBT.defaultInitPBTracker(False, saveName='noPB')
+    PBG.pbTracker.initialize(
+        doingPB = True, #This can be set to false if you want to do just normal training 
+        saveName=args.save_name,  # change the save name for different parameter runs
+        maximizingScore=True, #true for maximizing score, false for reducing error
+        makingGraphs=True)
+        
 
-    #model.heads[0].setThisInputDimensions([-1, 0])
-    #model.conv_proj.setThisInputDimensions([-1, 0, -1, -1])
-
-    
-    
     if(args.dataParallel):
         model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
     print('Running with %d devices' % (torch.cuda.device_count()))
-
-
 
     model = model.to(device)
     
@@ -257,7 +206,9 @@ def main():
     #Run your epochs of training and testing
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        model, optimizer, scheduler = test(model, device, test_loader, optimizer, scheduler, args)
+        model, optimizer, scheduler, trainingComplete = test(model, device, test_loader, optimizer, scheduler, args)
+        if trainingComplete:
+            break
         #scheduler.step()
 
     if args.save_model:

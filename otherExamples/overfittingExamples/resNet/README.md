@@ -8,3 +8,6 @@ Then just run mnist_PAI to test it out.  mnist_PAI can be compared with the orig
 
 
 CUDA_VISIBLE_DEVICES=1 python emnist_resnet_PAI.py --lr 0.01
+
+
+!["Example Output](exampleOutput.png "Example Output")
