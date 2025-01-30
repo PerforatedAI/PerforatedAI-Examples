@@ -25,7 +25,7 @@ Run PAI code with the following
 
     CUDA_VISIBLE_DEVICES=0 python learnPAI.py --model_name HIST --data_set csi300 --hidden_size 128 --outdir ./output/csi300_HIST
     
-Results Freemium:
+Results:
     
     Test Precision:  {1: 0.6549062844542448, 3: 0.6291804483645718, 5: 0.6202866593164278, 10: 0.607276736493936, 20: 0.5972987872105844, 30: 0.5898934215362, 50: 0.5777508269018743, 100: 0.5597133406835721}
 

@@ -2,7 +2,7 @@
 
 ## Modifications
 
-To work with hugginface some internal mechanisms of the trainer must be changed to do Perforated AI steps where they need to be done.  We have created a repo that is a fork which has everything in the correct place.  Get it by running:
+To work with hugginface some internal mechanisms of the trainer must be changed to do Perforated AI steps where they need to be done.  We have created a repo that is a fork which has everything in the correct place.  Get it and install requirements by running:
 
     pip install -r requirements.txt
     git clone https://github.com/PerforatedAI/PerforatedAI-Transformers.git

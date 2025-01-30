@@ -10,8 +10,8 @@ It also seems, even with seeding, the results are not fully deterministic.  But 
  
 First run:
 
-pip install -r requirements.txt
-pip install your perforated ai package
+    pip install -r requirements.txt
+    pip install perforatedai
 
 Run original code with:
 
