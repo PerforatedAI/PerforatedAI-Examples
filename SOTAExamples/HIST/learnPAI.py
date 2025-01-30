@@ -239,6 +239,14 @@ def main(args):
     PBG.missedOnesConfirmed = True
     PBG.historyLookback = 5
     PBG.capAtN = False
+    PBG.unwrappedModulesConfirmed = True
+    
+    
+    PBG.moduleIDsToSkip.append('.fc_out_hs')
+    PBG.moduleIDsToSkip.append('.fc_out_indi')
+    PBG.moduleIDsToSkip.append('.fc_out_ps')
+    
+
     
     seed = args.seed
     np.random.seed(seed)
@@ -346,6 +354,7 @@ def main(args):
             PBG.pbTracker.addExtraScore(test_precision[30], 'Test Precision30')
             PBG.pbTracker.addExtraScore(test_precision[50], 'Test Precision50')
             PBG.pbTracker.addExtraScore(test_precision[100], 'Test Precision100')
+            for param in model.parameters(): param.data = param.data.contiguous()
             model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_precision[1], 
                 model,
                 'PB_HIST')
@@ -353,6 +362,7 @@ def main(args):
             if(trainingComplete):
                 break
             if(restructured):
+                for param in model.parameters(): param.data = param.data.contiguous()
                 optimArgs = {'params':model.parameters(),'lr':args.lr}
                 optimizer = PBG.pbTracker.setupOptimizer(model, optimArgs)
             '''

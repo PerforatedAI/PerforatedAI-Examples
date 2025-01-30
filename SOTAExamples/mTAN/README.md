@@ -5,7 +5,7 @@ To run with PAI:
 
     pip install -r requirements.txt
     # This may tell you there is a dependency problem, but if you run it a second time and it does not come up again you can ignore it
-    pip install your perforated ai package
+    pip install perforatedai
 
 Run original code with:
 
@@ -17,13 +17,14 @@ Results:
 
 
     
-Run PAI code with the following. Multiplier 0.125 shows best compression for premium while 0.5 shows fully catching up in accuracy with less compression using freemium.
+Run PAI code with the following. Multiplier 0.125 shows best compression
 
-    CUDA_VISIBLE_DEVICES=1 python3 src/tan_classificationPAI.py --alpha 100 --lr 0.0001 --batch-size 50 --rec-hidden 256 --gen-hidden 50 --latent-dim 20 --enc mtan_rnn --dec mtan_rnn --n 8000 --quantization 0.016 --save 1 --classif --norm --kl --learn-emb --k-iwae 1 --dataset physionet --multiplier 0.5
+    CUDA_VISIBLE_DEVICES=1 python3 src/tan_classificationPAI.py --alpha 100 --lr 0.0001 --batch-size 50 --rec-hidden 256 --gen-hidden 50 --latent-dim 20 --enc mtan_rnn --dec mtan_rnn --n 8000 --quantization 0.016 --save 1 --classif --norm --kl --learn-emb --k-iwae 1 --dataset physionet --multiplier 0.125
 
-Results of freemium:
+Results:
     
-    Iter: 655, recon_loss: 20.9376, ce_loss: 0.2609, acc: 0.8910, mse: 0.0048, val_loss: 0.3068, val_acc: 0.8703, test_acc: 0.8625, test_auc: 0.8147
+    Iter: 1563, recon_loss: 26.1033, ce_loss: 0.2686, acc: 0.8949, mse: 0.0058, val_loss: 0.3068, val_acc: 0.8703, test_acc: 0.8638, test_auc: 0.8204
+
 
 
 !["Example Output](exampleOutput.png "Example Output")

@@ -28,3 +28,6 @@ Instructions to setup docker can be found [here](https://docs.docker.com/engine/
     > docker run --gpus all -i -v .:/pai -w /pai -t nvidiaconda /bin/bash
     
 Project requirements.txt's do not contain perforatedai since you will have different versions depending on your level of usage.  Just install perforatedai with pip laster after running other commands in the project READMEs, otherwise it will download versions of dependencies that then will just get overwritten.
+
+## Running with Other Optimizers
+Many PyTorch applications leverage other libraries that have custom trainers to assist with easier building such as PyTorch Lightning or Huggingface.  Examples of how to use these trainers can be found in the libraryExamples folder.  If you have a trainer that you would like to use with our system that we do not have an example for let us know.  We will do our best to assist you in getting the libraries comapatible. 

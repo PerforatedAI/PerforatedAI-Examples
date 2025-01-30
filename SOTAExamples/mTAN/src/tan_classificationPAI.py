@@ -67,7 +67,7 @@ PBG.capAtN = False #Makes sure subsequent rounds last max as long as first round
 #PBG.historyLookback = 1
 
 PBG.modulesToConvert.append(models.multiTimeAttention)
-PBG.maxDendriteTries = 1
+PBG.maxDendriteTries = 2
 PBG.maxDendrites = 3
 
 class GRUCellProcessor():
@@ -147,7 +147,11 @@ class fullModel(nn.Module):
     def forward(self, observed_data, observed_mask, observed_tp):
         out = self.rec(torch.cat((observed_data, observed_mask), 2), observed_tp)
         qz0_mean, qz0_logvar = out[:, :, :args.latent_dim], out[:, :, args.latent_dim:]
-        epsilon = torch.randn(args.k_iwae, qz0_mean.shape[0], qz0_mean.shape[1], qz0_mean.shape[2]).to(device)
+        if(PBG.testingDendriteCapactity):
+            epsilon = torch.ones(args.k_iwae, qz0_mean.shape[0], qz0_mean.shape[1], qz0_mean.shape[2]).to(device)
+        else:
+            epsilon = torch.randn(args.k_iwae, qz0_mean.shape[0], qz0_mean.shape[1], qz0_mean.shape[2]).to(device)
+        
         z0 = epsilon * torch.exp(.5 * qz0_logvar) + qz0_mean
         z0 = z0.view(-1, qz0_mean.shape[1], qz0_mean.shape[2])
         pred_y = self.classifier(z0)

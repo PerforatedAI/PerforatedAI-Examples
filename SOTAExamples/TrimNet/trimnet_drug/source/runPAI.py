@@ -53,6 +53,11 @@ class GRUCellLayerNormProcessor():
         c_t = args[0][1]
         self.c_t_d = c_t
         return h_t
+    def clear_processor(self):
+        if hasattr(self, 'c_t_n'):
+            delattr(self, 'c_t_n')
+        if hasattr(self, 'c_t_d'):
+            delattr(self, 'c_t_d')
 
 
 
