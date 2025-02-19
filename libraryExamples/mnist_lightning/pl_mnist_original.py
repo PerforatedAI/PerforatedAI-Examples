@@ -75,6 +75,7 @@ class LightningMNISTClassifier(pl.LightningModule):
         
     def on_validation_epoch_end(self):
         avg_loss = torch.tensor(self.validation_step_outputs).mean()
+        validation_step_outputs = []
         tensorboard_logs = {'val_loss': avg_loss}
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 

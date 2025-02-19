@@ -104,7 +104,7 @@ class LightningMNISTClassifier(pl.LightningModule):
     def on_validation_epoch_end(self):
         avg_loss = torch.tensor(self.validation_step_outputs).mean()
         tensorboard_logs = {'val_loss': avg_loss}
-        GoodEpochs = self.epochs
+        goodEpochs = self.epochs
         #The first epoch is a validation epoch that happens before any training, so don't add the score or the layers won't be initialized.
         if(self.epochs != 0):
             self.model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(self.totalValCorrects/5000, 
@@ -113,7 +113,7 @@ class LightningMNISTClassifier(pl.LightningModule):
             self.model.to('cuda')
             if(trainingComplete):
                 #send the early stop signal by not increaseing the good epochs
-                GoodEpochs = 0
+                goodEpochs = 0
             elif(restructured): 
                 # This call will reinitialize the optimizers to point to the new model
                 self.trainer.strategy.setup(trainer)

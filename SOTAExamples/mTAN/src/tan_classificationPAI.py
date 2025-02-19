@@ -147,7 +147,7 @@ class fullModel(nn.Module):
     def forward(self, observed_data, observed_mask, observed_tp):
         out = self.rec(torch.cat((observed_data, observed_mask), 2), observed_tp)
         qz0_mean, qz0_logvar = out[:, :, :args.latent_dim], out[:, :, args.latent_dim:]
-        if(PBG.testingDendriteCapactity):
+        if(PBG.testingDendriteCapacity):
             epsilon = torch.ones(args.k_iwae, qz0_mean.shape[0], qz0_mean.shape[1], qz0_mean.shape[2]).to(device)
         else:
             epsilon = torch.randn(args.k_iwae, qz0_mean.shape[0], qz0_mean.shape[1], qz0_mean.shape[2]).to(device)
