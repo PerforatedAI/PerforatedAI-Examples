@@ -163,8 +163,6 @@ def main():
     #Create the model
     model = models.resnet18(num_classes == num_classes)
     model = PBM.ResNetPB(model)
-    if(args.dataParallel):
-        PB.newDataParallel = True
     
 
     model = PBU.convertNetwork(model)
