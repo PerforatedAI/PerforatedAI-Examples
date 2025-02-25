@@ -19,7 +19,7 @@ Results:
     
 Run PAI code with the following. Multiplier 0.125 shows best compression
 
-    CUDA_VISIBLE_DEVICES=1 python3 src/tan_classificationPAI.py --alpha 100 --lr 0.0001 --batch-size 50 --rec-hidden 256 --gen-hidden 50 --latent-dim 20 --enc mtan_rnn --dec mtan_rnn --n 8000 --quantization 0.016 --save 1 --classif --norm --kl --learn-emb --k-iwae 1 --dataset physionet --multiplier 0.125
+    CUDA_VISIBLE_DEVICES=1 python3 src/tan_classification_perforatedai.py --alpha 100 --lr 0.0001 --batch-size 50 --rec-hidden 256 --gen-hidden 50 --latent-dim 20 --enc mtan_rnn --dec mtan_rnn --n 8000 --quantization 0.016 --save 1 --classif --norm --kl --learn-emb --k-iwae 1 --dataset physionet --multiplier 0.125
 
 Results:
     
@@ -30,7 +30,7 @@ Results:
 !["Example Output](exampleOutput.png "Example Output")
     
 # Changes of Note
-## models.py vs modelsPAI.py
+## models.py vs models_perforatedai.py
 
     reverseGru
 
@@ -40,7 +40,7 @@ One of the Grus in the mTAN network is processed in reverse and will require a d
 
 Within the enc_mtan_rnn module there are two nn.linears that rather than being called as usual are passed through the learn_time_embedding function.  This function performs additional complex computation in between linear non-linearities. As a general rule, this is something that should be avoided.  To get that computation into the Dendrite processing as well, rather than include it as a function, it is added as a module which just performs the same computations in the forward function which Dendrites use automatically.  
 
-## tan_classification.py vs tan_classificationPAI.py
+## tan_classification.py vs tan_classification_perforatedai.py
 
     GRUCellProcessor and ReverseGRUCellProcessor
     

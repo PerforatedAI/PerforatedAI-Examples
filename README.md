@@ -10,11 +10,23 @@ Because Perforated Backpropagation<sup>tm</sup> is not open source, a license is
 
 ## Understanding Results
 
-To determine the numbers we used in our paper run the examples via each README.  Png images and csv files will be generated in the folder you run from.  The csv file you want to look at will end with bestTestScores.csv.  This file will have three columns.
+### Graphs
+
+The output of a successful experiment should look like the following graph generated from our PGT2 PEFT example in the Huggingface folder.
+![Example Output](ExampleOutput.png)
+
+A detailed description of everything in these graphs can be found [here](https://github.com/PerforatedAI/PerforatedAI-API/blob/master/output.md)
+
+### Best Test Scores CSV
+To determine the numbers we used in our paper run the examples via each README.  PNG images and csv files will be generated in the folder you run from.  The csv file you want to look at will end with bestTestScores.csv.  This file will have three columns.
 
 - The leftmost column is the parameter count of each version of the architecture.  This should remain the same across all experiments.
 - The second column is the maximum validation score for a given architecture.  As learning switches back and forth between neuron learning and Dendrite learning this is the best validation score that existed during neuron learning with a particular Dendrite count.
 - The third column is NOT the maximum test score for a given architecture.  Rather, it is the test score that was calculated at the epoch where the maximum validation score was calculated from column two.  This is the column we used when generating all results.
+
+
+
+
 
 ## Running with Docker
 

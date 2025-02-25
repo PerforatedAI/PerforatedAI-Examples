@@ -6,4 +6,4 @@ For this example the PAI system shows the capacity to improve the model because 
 
 Install requirements.txt first with pip then run:
 
-    CUDA_VISIBLE_DEVICES=1 python emnist_densenet_PAI.py --lr 0.01
+    CUDA_VISIBLE_DEVICES=0 python emnist_densenet_perforatedai.py --lr 0.01

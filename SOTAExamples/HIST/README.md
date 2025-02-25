@@ -23,7 +23,7 @@ Results:
     
 Run PAI code with the following
 
-    CUDA_VISIBLE_DEVICES=0 python learnPAI.py --model_name HIST --data_set csi300 --hidden_size 128 --outdir ./output/csi300_HIST
+    CUDA_VISIBLE_DEVICES=0 python learn_perforatedai.py --model_name HIST --data_set csi300 --hidden_size 128 --outdir ./output/csi300_HIST
     
 Results:
     
