@@ -18,7 +18,7 @@ run PAI with
     python train_perforatedai.py
     
 Output graph:    
-!["Example Output](exampleOutput.png "Example Output")
+![Example Output](exampleOutput.png "Example Output")
     
 # U-Net: Semantic segmentation with PyTorch
 <a href="#"><img src="https://img.shields.io/github/actions/workflow/status/milesial/PyTorch-UNet/main.yml?logo=github&style=for-the-badge" /></a>

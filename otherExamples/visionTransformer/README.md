@@ -1,6 +1,6 @@
 # CIFAR 10 example
 
-This is a basic example that just runs Perforated Backpropagaiton<sup>tm</sup> with the default mnist example from the pytorch repository on the emnist dataset with a vision transformer. 
+This is a basic example that just runs Perforated Backpropagaiton<sup>tm</sup> with the default mnist example from the pytorch repository on the emnist dataset with a vision transformer. The improvement is a modest 4%, but still included in the examples for anyone who would like to try ViT on their own datasets.
 
 ## Setup
 
