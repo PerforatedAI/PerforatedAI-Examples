@@ -11,4 +11,4 @@ This is a basic example that just runs Perforated Backpropagaiton<sup>tm</sup> w
     CUDA_VISIBLE_DEVICES=0 python emnist_transformer_perforatedai.py
 
 
-!["Example Output](exampleOutput.png "Example Output")
+![Example Output](exampleOutput.png "Example Output")
