@@ -2,17 +2,22 @@
 
 Checked out from https://github.com/milesial/Pytorch-UNet.git July 12th 2024
 
-Run original with:
-
-    python train.py
-    Validation Dice score: 0.9908239841461182  
+Setup with:
+  pip install -r requirements.txt
+  kaggle competitions download -c carvana-image-masking-challenge
+  unzip carvana-image-masking-challenge.zip 
+  mkdir data
+  rm carvana-image-masking-challenge.zip 
+  mv *.zip data
+  cd data
+  unzip \*.zip
+  cd ..
     
 run PAI with
     
-    python trainPAI.py
-    adding validation score 0.993957
-
-Output graph from a different random seed:    
+    python train_perforatedai.py
+    
+Output graph:    
 !["Example Output](exampleOutput.png "Example Output")
     
 # U-Net: Semantic segmentation with PyTorch

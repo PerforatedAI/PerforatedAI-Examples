@@ -24,8 +24,8 @@ from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 
 
-dir_img = Path('/pai/data/train_hq')
-dir_mask = Path('/pai/data/train_masks')
+dir_img = Path('./data/train_hq')
+dir_mask = Path('./data/train_masks')
 dir_checkpoint = Path('./checkpoints/')
 
 
@@ -227,7 +227,7 @@ if __name__ == '__main__':
     PBG.pEpochsToSwitch = 25  #Same as above for PAI epochs
     PBG.nodeIndex = 1 # This is the index of the nodes within a layer's tensors, as opposed to batch and convolution indexes
     PBG.inputDimensions = [-1, 0, -1, -1] #this is the shape of inputs if you have a shape that varies
-
+    PBG.unwrappedModulesConfirmed = True
 
     #PBG.switchMode = PBG.doingSwitchEveryTime
     #PBG.retainAllPB = True

@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
-import torchvisionModelsPAI as PAImodels
+import torchvisionModels_perforatedai as PAImodels
 import torchvisionModelsClone as models
 from torch.optim.lr_scheduler import StepLR
 
