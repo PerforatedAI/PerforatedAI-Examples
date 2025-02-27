@@ -15,6 +15,6 @@
 
     Width settings can be changed on line 452 to produce a graph like the following:
 
-    ![Example Output](ExampleOutput.png "BERT")
+![Example Output](ExampleOutput.png "BERT")
 
 
