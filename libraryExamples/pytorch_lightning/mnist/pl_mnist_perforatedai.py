@@ -117,7 +117,7 @@ class LightningMNISTClassifier(pl.LightningModule):
             elif(restructured): 
                 # This call will reinitialize the optimizers to point to the new model
                 self.trainer.strategy.setup(trainer)
-        self.log("Good Epochs", GoodEpochs)
+        self.log("Good Epochs", goodEpochs)
         self.epochs += 1
         print('got total correct val: %d' % self.totalValCorrects)
         self.totalValCorrects = 0

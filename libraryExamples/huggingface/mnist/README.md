@@ -18,6 +18,24 @@ The rest of this readme covers the mnist example in this folder.  But additional
     
 ## Code Changes
 
+### Imports and Constants
+
+    from perforatedai import pb_globals as PBG
+    from perforatedai import pb_models as PBM
+    from perforatedai import pb_utils as PBU
+
+    # When to switch between Dendrite learning and neuron learning. 
+    PBG.switchMode = PBG.doingHistory 
+    # How many normal epochs to wait for before switching modes, make sure this is higher than your scheduler's patience.
+    PBG.nEpochsToSwitch = 10  
+    # Same as above for Dendrite epochs
+    PBG.pEpochsToSwitch = 10
+    # The default shape of input tensors
+    PBG.inputDimensions = [-1, 0, -1, -1]
+    
+    and just for testing
+    PBG.testingDendriteCapacity = True
+
 ### Save Name
 
 Because the evaluation function is inside the HF trainer code you will need to set a global for the save name you want to use.  This can be done as follows:
@@ -32,12 +50,14 @@ You need to make sure that the trainer actually does evaluation regularly.  This
     training_args.eval_strategy = "steps"
     training_args.eval_steps = 500
 
-### Deleting base_model
-
-Huggingface models sometimes make a copy of themselves so the model has two pointers to the full architecture.  This will cause an error saying "some tensors share memory".  The second model will often be called base_model.  It can just be deleted as follows.
+### Converting Network
 
     model = PBU.convertNetwork(model)
-    del model.base_model
+    PBG.pbTracker.initialize(
+        doingPB = True, #This can be set to false if you want to do just normal training 
+        saveName=PBG.saveName,  # Change the save name for different parameter runs
+        maximizingScore=False, # True for maximizing validation score, false for minimizing validation loss
+        makingGraphs=True)  # True if you want graphs to be saved
     
 ### TestingDendriteCapacity
 
