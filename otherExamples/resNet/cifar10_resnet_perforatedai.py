@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import datasets, transforms, models
+from torchvision import datasets, transforms
+import resnet as models
 from torch.optim.lr_scheduler import StepLR
 
 from perforatedai import pb_globals as PBG
@@ -131,17 +132,30 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    num_classes = 10
+    num_classes = 47
     image_size = 32
     #Define the data loaders
-    transform=transforms.Compose([
+    transform_train = transforms.Compose(
+            [ 
+                #transforms.CenterCrop(26),
                 transforms.Resize((image_size,image_size)),
-                transforms.ToTensor()
-        ])
-    dataset1 = datasets.CIFAR10('./data', train=True, download=True,
-                    transform=transform)
-    dataset2 = datasets.CIFAR10('./data', train=False,
-                    transform=transform)
+                transforms.RandomRotation(10),      
+                transforms.RandomAffine(5),
+                transforms.ToTensor(),
+                transforms.Lambda(lambda x: x.repeat(3, 1, 1) ),
+            transforms.Normalize((0.1307,), (0.3081,)),
+            ])
+    transform_test = transforms.Compose(
+            [ 
+                transforms.Resize((image_size,image_size)),
+                transforms.ToTensor(),
+                transforms.Lambda(lambda x: x.repeat(3, 1, 1) ),
+        transforms.Normalize((0.1307,), (0.3081,)),
+            ])
+    #Dataset
+    dataset1 = datasets.EMNIST(root='./data', split='balanced', train=True, download=True, transform=transform_train)
+
+    dataset2 = datasets.EMNIST(root='./data',  split='balanced', train=False, download=True, transform=transform_test)
     train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
@@ -155,14 +169,14 @@ def main():
     PBG.nEpochsToSwitch = 10  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
     PBG.pEpochsToSwitch = 10  #Same as above for PAI epochs
     PBG.capAtN = True #Makes sure subsequent rounds last max as long as first round
-    PBG.initialHistoryAfterSwitches = 5
+    PBG.initialHistoryAfterSwitches = 2
     PBG.testSaves = True
 
     PBG.moduleNamesToConvert.append('BasicBlock')
     
     #Create the model
     model = models.resnet18(num_classes == num_classes)
-    model = PBM.ResNetPB(model)
+    #model = PBM.ResNetPB(model)
     
 
     model = PBU.convertNetwork(model)
