@@ -12,11 +12,8 @@ Features:
   • Uses Perforated Backpropagation implemented through the PerforatedAI library.
 
 Setup for PAI:
-    git clone https://github.com/huggingface/peft.git
     git clone https://github.com/PerforatedAI/PerforatedAI-Transformers.git
-    cd peft
-    pip install -e .
-    cd ../PerforatedAI-Transformers
+    cd PerforatedAI-Transformers
     pip install -e .
     pip install perforatedai evaluate scikit-learn 
 
@@ -86,6 +83,9 @@ from perforatedai import pb_utils as PBU
 from datasets import load_dataset, Dataset, DatasetDict
 
 from models import BertForSequenceClassificationPB, RobertaForSequenceClassificationPB, ClassifierWrapper
+
+# Patch the Trainer class to support eval_accuracy metric
+from trainer_patch import Trainer
 
 # =============================================================================
 # Helper Dataset Class
@@ -302,7 +302,7 @@ def main():
     # Compression for model width
     parser.add_argument("--width", type=float, default=1.0, help="Width factor to shrink the model (between 0 and 1)")
     # Training hyperparameters
-    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--max_len", type=int, default=512, help="Maximum sequence length")
