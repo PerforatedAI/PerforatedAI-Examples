@@ -206,13 +206,13 @@ def main():
     # Set compression for model width
     parser.add_argument("--width", type=float, default=1.0, help="Width factor to shrink the model (between 0 and 1)")
     # Training hyperparameters
-    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument("--num_epochs", type=int, default=100, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--max_len", type=int, default=512, help="Maximum sequence length")
     parser.add_argument("--lr", type=float, default=1e-5, help="Learning rate")
     parser.add_argument("--hidden_dropout_prob", type=float, default=0.1, help="Hidden dropout probability")
-    parser.add_argument("--attention_probs_dropout_prob", type=
+    parser.add_argument("--attention_probs_dropout_prob", type=float, default=0.1, help="Attention dropout probability")
     # Saving and early stopping parameters
     parser.add_argument("--model_save_location", type=str, default=None, help="Directory to save the trained model")
     parser.add_argument("--early_stopping", action="store_true", help="Enable early stopping")
