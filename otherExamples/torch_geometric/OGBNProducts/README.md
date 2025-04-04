@@ -15,7 +15,7 @@ Within Docker
     
 Run original with:
 
-    CUDA_VISIBLE_DEVICES=0 python ogbn_train.py --dataset ogbn-products --batch_size 128
+    CUDA_VISIBLE_DEVICES=0 python ogbn_train.py --dataset ogbn-products --batch_size 128 --model (sage or sgformer)
 
 Results:
 
@@ -23,12 +23,14 @@ Results:
 
 Run PAI with:
 
-    CUDA_VISIBLE_DEVICES=0 python ogbn_train_perforatedai.py --dataset ogbn-products --batch_size 128 --saveName ogbnPAI
+    CUDA_VISIBLE_DEVICES=0 python ogbn_train_perforatedai.py --dataset ogbn-products --batch_size 128 --saveName ogbnPAI --model (sage or sgformer)
     
 Results:
 
     Test Accuracy: 78.05%
 
-Generated Graph should look similar to the following:
+Generated Graph should look similar to the following for sage:
     
 !["Graph of Output](exampleOutput.png "Example Output")
+
+The system is compatible 
