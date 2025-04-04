@@ -41,8 +41,6 @@ from perforatedai import pb_models as PBM
 from perforatedai import pb_utils as PBU
 import sys
 
-saveName = 'PBgpt2'
-
 model_name_or_path = "gpt2-medium"
 PBG.fixedSwitchNum = 50
 PBG.firstFixedSwitchNum = 49
@@ -67,7 +65,8 @@ PBG.pEpochsToSwitch = 10
 # The default shape of input tensors
 PBG.inputDimensions = [-1, -1, 0]
 
-
+PBG.testingDendriteCapacity = False
+PBG.weightDecayAccepted = True
 
 
 
@@ -139,15 +138,9 @@ PBG.usingSafeTensors = False
 
 PBG.pbImprovementThreshold = 0.5 #improvement increase needed to call a new best PBScore
 PBG.pbImprovementThresholdRaw = 1e-4# raw increase needed, if its lower than this its not really learning 
+PBG.moduleNamesToNotSave = ['.base_model.model.base_model']
 
-
-model = PBU.convertNetwork(model)
-PBG.pbTracker.initialize(
-    doingPB = True, #This can be set to false if you want to do just normal training 
-    saveName=saveName,  # Change the save name for different parameter runs
-    maximizingScore=True, # True for maximizing validation score, false for minimizing validation loss
-    makingGraphs=True)  # True if you want graphs to be saved
-
+model = PBU.initializePB(model)
 
 # +
 optimizer = AdamW(params=model.parameters(), lr=lr)
@@ -201,9 +194,8 @@ while(True):
     print(f"epoch eval {epoch}:", eval_metric)
     print(f"epoch test {epoch}:", test_metric)
     PBG.pbTracker.addTestScore(test_metric['accuracy'], 'Test Accuracy')
-    model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(eval_metric['accuracy'], 
-    model, # .module if its a dataParallel
-    saveName)
+    model, restructured, trainingComplete = PBG.pbTracker.addValidationScore(eval_metric['accuracy'], 
+    model) # .module if its a dataParallel
     model.to(device)
     if(trainingComplete):
         break

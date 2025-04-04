@@ -19,6 +19,7 @@ PBG.pEpochsToSwitch = 10
 PBG.inputDimensions = [-1, 0,-1,-1]
 PBG.historyLookback = 1
 PBG.maxDendrites = 5
+PBG.testingDendriteCapacity = False
 
 #When calculating scores with accuracy improvements the default for this is 1e-4 to enourage any improvement in decisions to count as an improvement.  When minimizing loss instead it should be higher since loss can continue to be reduced even when classification decisions are not being improved.
 PBG.improvementThreshold = 0.005
@@ -60,14 +61,8 @@ train_loader = torch.utils.data.DataLoader(train_dset, shuffle=True, batch_size=
 test_loader = torch.utils.data.DataLoader(test_dset, shuffle=False, batch_size=64)
 
 model = BasicNet()
-model = PBU.convertNetwork(model)
-# Note, this need to set PBG.saveName manually for huggingface
 PBG.saveName = 'mnistHF'
-PBG.pbTracker.initialize(
-    doingPB = True,
-    saveName=PBG.saveName,
-    maximizingScore=False,
-    makingGraphs=True)
+model = PBU.initializePB(model, maximizingScore=False)
 
 training_args = TrainingArguments(
     "basic-trainer",

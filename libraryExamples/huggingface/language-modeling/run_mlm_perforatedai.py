@@ -68,12 +68,13 @@ safetensors.torch._find_shared_tensors = _ignore_shared_tensors
 # When to switch between Dendrite learning and neuron learning. 
 PBG.switchMode = PBG.doingHistory 
 # How many normal epochs to wait for before switching modes, make sure this is higher than your scheduler's patience.
-PBG.nEpochsToSwitch = 10
+PBG.nEpochsToSwitch = 25
 # Same as above for Dendrite epochs
-PBG.pEpochsToSwitch = 10
+PBG.pEpochsToSwitch = 25
 # The default shape of input tensors
 PBG.inputDimensions = [-1, 0, -1]
 PBG.pbImprovementThreshold = 0.5
+PBG.testingDendriteCapacity = False
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.49.0.dev0")
@@ -488,15 +489,7 @@ def main():
     
     PBG.saveName = 'BERTPB' + str(width) + '-' + str(training_args.seed)
     
-    model = PBU.convertNetwork(model)
-    
-    #del model.base_model
-    
-    PBG.pbTracker.initialize(
-        doingPB = True, #This can be set to false if you want to do just normal training 
-        saveName=PBG.saveName,  # Change the save name for different parameter runs
-        maximizingScore=False, # True for maximizing validation score, false for minimizing validation loss
-        makingGraphs=True)  # True if you want graphs to be saved
+    model = PBU.initializePB(model, maximizingScore=False)
     # We resize the embeddings only when necessary to avoid index errors. If you are creating a model from scratch
     # on a small vocab and want a smaller embedding size, remove this test.
     embedding_size = model.get_input_embeddings().weight.shape[0]

@@ -4,4 +4,4 @@ This is a basic example that just runs Perforated Backpropagaiton<sup>tm</sup> w
 
 Install requirements.txt first with pip
 
-Then just run mnist_PAI to test it out.  mnist_PAI can be compared with the original mnist.py to see what was changed.
+Then just run mnist_perforatedai to test it out which can be compared with the original mnist.py to see what was changed.

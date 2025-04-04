@@ -177,9 +177,8 @@ def train_model(
                             pass
                         '''
                         
-                        model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_score, 
-                        model, # .module if its a parallel, 
-                        'PBUnet') # Use the same one as in setOptionalParams
+                        model, restructured, trainingComplete = PBG.pbTracker.addValidationScore(val_score, 
+                        model) # .module if its a parallel, 
                         model.to(memory_format=torch.channels_last)
                         model.to('cuda')
                         
@@ -228,10 +227,9 @@ if __name__ == '__main__':
     PBG.nodeIndex = 1 # This is the index of the nodes within a layer's tensors, as opposed to batch and convolution indexes
     PBG.inputDimensions = [-1, 0, -1, -1] #this is the shape of inputs if you have a shape that varies
     PBG.unwrappedModulesConfirmed = True
-
-    #PBG.switchMode = PBG.doingSwitchEveryTime
-    #PBG.retainAllPB = True
-
+    PBG.weightDecayAccepted = True
+    PBG.testingDendriteCapacity = False
+    PBG.maxDendrites = 2
 
     # Change here to adapt to your data
     # n_channels=3 for RGB images
@@ -239,16 +237,7 @@ if __name__ == '__main__':
     model = UNet(n_channels=3, n_classes=args.classes, bilinear=args.bilinear)
     model = model.to(memory_format=torch.channels_last)
 
-
-
-
-    model = PBU.convertNetwork(model)
-    PBG.pbTracker.initialize(
-        doingPB = True, #This can be set to false if you want to do just normal training 
-        saveName='PBUnet',  # change the save name for different parameter runs
-    maximizingScore=True, #true for maximizing validation score, false for minimuzing validation loss
-    makingGraphs=True)  #true if you want graphs to be saved
-
+    model = PBU.initializePB(model)
 
     logging.info(f'Network:\n'
                  f'\t{model.n_channels} input channels\n'

@@ -22,7 +22,7 @@ PBG.pEpochsToSwitch = 10
 PBG.inputDimensions = [-1, 0]
 PBG.historyLookback = 1
 PBG.maxDendrites = 5
-
+PBG.testingDendriteCapacity = False
 
 model_path = '.'
 
@@ -107,20 +107,22 @@ class LightningMNISTClassifier(pl.LightningModule):
         goodEpochs = self.epochs
         #The first epoch is a validation epoch that happens before any training, so don't add the score or the layers won't be initialized.
         if(self.epochs != 0):
-            self.model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(self.totalValCorrects/5000, 
-            self.model, # .module if its a dataParallel
-            'mnistPTL')
+            self.model, restructured, trainingComplete = PBG.pbTracker.addValidationScore(self.totalValCorrects/5000, 
+            self.model)
             self.model.to('cuda')
             if(trainingComplete):
                 #send the early stop signal by not increaseing the good epochs
                 goodEpochs = 0
             elif(restructured): 
                 # This call will reinitialize the optimizers to point to the new model
-                self.trainer.strategy.setup(trainer)
+                self.trainer.strategy.setup(self.trainer)
         self.log("Good Epochs", goodEpochs)
         self.epochs += 1
         print('got total correct val: %d' % self.totalValCorrects)
         self.totalValCorrects = 0
+        # Clear the list of step outputs so future scores are only for current epoch
+        self.validation_step_outputs = []
+        self.test_step_outputs = []
         return {'avg_val_loss': avg_loss, 'log': tensorboard_logs}
 
     def on_test_epoch_end(self):
@@ -128,6 +130,8 @@ class LightningMNISTClassifier(pl.LightningModule):
         tensorboard_logs = {'test_loss': avg_loss}
         print('got total correct test: %d' % self.totalTestCorrects)
         self.totalTestCorrects = 0
+        # Clear the list of step outputs so future scores are only for current epoch
+        self.test_step_outputs = []
         #this is so off right now because the setting is to 5% better or bust.  trying to just debug why it doesnt test properly at the end.
         return {'avg_test_loss': avg_loss, 'log': tensorboard_logs}
 
@@ -137,7 +141,7 @@ class LightningMNISTClassifier(pl.LightningModule):
         PBG.pbTracker.setScheduler(torch.optim.lr_scheduler.ReduceLROnPlateau)
         optimArgs = {'params':self.model.parameters(),'lr':1e-3}
         schedArgs = {'mode':'min', 'patience': 5}
-        self.optimizer, self.scheduler = PBG.pbTracker.setupOptimizer(model, optimArgs, schedArgs)
+        self.optimizer, self.scheduler = PBG.pbTracker.setupOptimizer(self.model, optimArgs, schedArgs)
         #don't actually return the scheduler since PB handles scheduler interanlly
         return [self.optimizer]
 
@@ -187,13 +191,7 @@ train_loader, val_loader, test_loader = DataLoader(train, batch_size=64), DataLo
 
 model = LightningMNISTClassifier()
 
-model.model = PBU.convertNetwork(model.model)
-PBG.pbTracker.initialize(
-    doingPB = True, #This can be set to false if you want to do just normal training 
-    saveName='mnistPTL',
-maximizingScore=True, # True for maximizing validation score, False for minimizing validation loss
-makingGraphs=True)  # True if you want graphs to be saved
-
+model.model = PBU.initializePB(model.model)
 
 # Set Early Stopping to be when the system sends a single "bad epoch" meaning training is complete
 early_stopping = EarlyStopping('Good Epochs', mode='max', patience=0)

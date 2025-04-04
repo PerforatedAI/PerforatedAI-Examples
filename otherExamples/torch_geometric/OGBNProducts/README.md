@@ -19,15 +19,15 @@ Run original with:
 
 Results:
 
-    Test Accuracy: 77.19%
-    
+    Test Accuracy: 77.06%
+
 Run PAI with:
 
     CUDA_VISIBLE_DEVICES=0 python ogbn_train_perforatedai.py --dataset ogbn-products --batch_size 128 --saveName ogbnPAI
     
 Results:
 
-    Test Accuracy: 78.37%
+    Test Accuracy: 78.05%
 
 Generated Graph should look similar to the following:
     

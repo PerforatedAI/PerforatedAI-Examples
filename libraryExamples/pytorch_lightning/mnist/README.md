@@ -61,7 +61,15 @@ This funtion should just be changed in the same was as usual for optimizers and 
         #don't actually return the scheduler since PB handles scheduler interanlly
         return [self.optimizer]
 
+#### Trainer Setup
+The reason to add the Good Epochs log is to early stop when we say there was an epoch that was not good.  That can be acheived with the following:
 
+early_stopping = EarlyStopping('Good Epochs', mode='max', patience=0)
+
+trainer = pl.Trainer(
+                        Your original settings,
+                        callbacks=[early_stopping]
+                    )
     
 ## Running
 
