@@ -1,5 +1,7 @@
 # PAI README
 
+This example goes through adding Perforated Backpropagation to the pytorch geometric [ogbn-products example](https://github.com/pyg-team/pytorch_geometric/blob/b89c37ae9e0cac1d358c453df6954e45ca36fb43/examples/ogbn_train.py)
+
 First checkout latest torch geometric code and docker
 
     git clone https://github.com/pyg-team/pytorch_geometric.git
