@@ -1,16 +1,16 @@
 # PAI README
-checked out from torch geometric 9.27.2024
 
+First checkout latest torch geometric code and docker
+
+   git clone https://github.com/pyg-team/pytorch_geometric.git
    docker pull nvcr.io/nvidia/pyg:24.11-py3
-
-Run docker from torch_geometric directory with --shm-size 8G
-
    docker run --gpus all -i --shm-size=8g -v .:/pai -w /pai -t nvcr.io/nvidia/pyg:24.11-py3 /bin/bash
 
 Within Docker
 
+    cd pytorch_geometric
     pip install -e .
-    cd examples
+    cd ..
     pip install PAI wheel file
     
 Run original with:
@@ -33,4 +33,3 @@ Generated Graph should look similar to the following for sage:
     
 !["Graph of Output](exampleOutput.png "Example Output")
 
-The system is compatible 
