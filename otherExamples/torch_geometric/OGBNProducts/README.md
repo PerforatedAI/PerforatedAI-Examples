@@ -11,7 +11,7 @@ Within Docker
     cd pytorch_geometric
     pip install -e .
     cd ..
-    pip install PAI wheel file
+    pip install perforatedai
     
 Run original with:
 
