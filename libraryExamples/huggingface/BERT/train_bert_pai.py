@@ -85,7 +85,7 @@ from datasets import load_dataset, Dataset, DatasetDict
 from models import BertForSequenceClassificationPB, RobertaForSequenceClassificationPB, ClassifierWrapper
 
 # Patch the Trainer class to support eval_accuracy metric
-from trainer_patch import Trainer
+# from trainer_patch import Trainer
 
 # =============================================================================
 # Helper Dataset Class
@@ -256,6 +256,7 @@ def set_PBG_params(args):
     PBG.capAtN = args.cap_at_n
     PBG.debuggingInputDimensions = 1
     PBG.metric = 'eval_accuracy'
+    PBG.weightDecayAccepted = True    
     
 def resize_model_hidden_size(config, width_factor):
     if width_factor <= 0 or width_factor > 1.0:
@@ -422,8 +423,12 @@ def main():
     else:
         raise ValueError(f"Unsupported model: {args.model_name}")
     
-    # Apply PAI conversion.
-    model = PBU.convertNetwork(model)
+    # Convert model to be compatible with PB and initialize PB tracking
+    PBU.initializePB(
+        model,
+        saveName=PBG.saveName,
+        maximizingScore=args.maximizing_score, 
+    )
     
     # Set input dimensions for the model
     for layer_name, layer in dict(model.named_modules()).items():
@@ -437,13 +442,6 @@ def main():
         except Exception as e:
             print(f"Could not set input dimensions for {layer_name}: {e}")
     
-    # Initialize PB tracker in active mode
-    PBG.pbTracker.initialize(
-        doingPB=True,
-        saveName=PBG.saveName,
-        maximizingScore=args.maximizing_score, 
-        makingGraphs=True
-    )
 
     # Move model to device.
     device = "cuda" if torch.cuda.is_available() else "cpu"
