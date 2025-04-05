@@ -84,8 +84,6 @@ from datasets import load_dataset, Dataset, DatasetDict
 
 from models import BertForSequenceClassificationPB, RobertaForSequenceClassificationPB, ClassifierWrapper
 
-# Patch the Trainer class to support eval_accuracy metric
-# from trainer_patch import Trainer
 
 # =============================================================================
 # Helper Dataset Class
