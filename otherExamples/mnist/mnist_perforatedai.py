@@ -212,14 +212,6 @@ def main():
         test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     #Set up some global parameters for PAI code
-    PBG.switchMode = PBG.doingHistory # This is when to switch between PAI and regular learning
-    #PBG.retainAllPB = True
-    PBG.inputDimensions = [-1, 0, -1, -1] #this is the shape of inputs, for a standard conv net this will work
-    PBG.nEpochsToSwitch = 25  #This is how many normal epochs to wait for before switching modes.  Make sure this is higher than your schedulers patience. 
-    PBG.pEpochsToSwitch = 25  #Same as above for PAI epochs
-    PBG.capAtN = True #Makes sure subsequent rounds last max as long as first round
-    PBG.initialHistoryAfterSwitches = 5
-    PBG.testSaves = True
     PBG.testingDendriteCapacity = False
 
     #Create the model
