@@ -75,15 +75,13 @@ def test(model, device, test_loader, optimizer, scheduler, args):
 
     if(args.dataParallel):
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
-        model.module,
-        args.save_name) 
+        model, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model.module) 
         model = PBM.PAIDataParallel(model, device_ids=range(torch.cuda.device_count())).to(PBG.device)
     else:
         #Add the new score to the tracker which may restructured the model with PB Nodes
-        model, improved, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
-        model,
-        args.save_name) 
+        model, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
+        model) 
         model.to(device)
     #If it was restructured reset the optimizer and scheduler
     if(restructured): 
@@ -222,7 +220,7 @@ def main():
     PBG.testSaves = True
     PBG.unwrappedModulesConfirmed = True
     PBG.moduleNamesToConvert.append('EncoderBlock')
-
+    PBG.testingDendriteCapacity = False
 
 
 
@@ -233,26 +231,7 @@ def main():
     if(args.dataParallel):
         PB.newDataParallel = True
     
-    if(args.doingPB):
-        #Convert the network to be a PAI Network
-        if(args.test_head):
-            model.fc2 = PBU.convertNetwork(model.fc2, layerName = 'layer2')
-        if(args.test_backbone):
-            model.conv1 = PBU.convertNetwork(model.conv1, layerName = 'layer2')
-            model.conv2 = PBU.convertNetwork(model.conv2, layerName = 'layer2')
-            model.fc1 = PBU.convertNetwork(model.fc1, layerName = 'layer2')
-        else:
-            model = PBU.convertNetwork(model)
-                #Setup a few extra parameters
-        PBG.pbTracker.initialize(
-            doingPB = True, #This can be set to false if you want to do just normal training 
-            saveName=args.save_name,  # change the save name for different parameter runs
-            maximizingScore=True, #true for maximizing score, false for reducing error
-            makingGraphs=True)  #true if you want graphs to be saved
-            
-    else:
-        PBT.defaultInitPBTracker(False, saveName='noPB')
-
+    model = PBU.initializePB(model)
     model.heads[0].setThisInputDimensions([-1, 0])
     model.conv_proj.setThisInputDimensions([-1, 0, -1, -1])
 

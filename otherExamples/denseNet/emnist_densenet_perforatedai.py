@@ -72,8 +72,7 @@ def test(model, device, test_loader, optimizer, scheduler, args):
 
     #Add the new score to the tracker which may restructured the model with PB Nodes
     model, restructured, trainingComplete = PBG.pbTracker.addValidationScore(100. * correct / len(test_loader.dataset), 
-    model,
-    args.save_name) 
+    model) 
     model.to(device)
     #If it was restructured reset the optimizer and scheduler
     if(restructured): 
@@ -184,7 +183,6 @@ def main():
     PBG.initialHistoryAfterSwitches = 5
     PBG.testSaves = True
     PBG.testingDendriteCapacity = False
-    PBG.verbose = True
 
     PBG.moduleNamesToConvert.append('_Transition')
     PBG.moduleNamesToConvert.append('_DenseBlock')
