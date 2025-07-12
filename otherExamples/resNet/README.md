@@ -8,7 +8,7 @@ This is a basic example that just runs Perforated Backpropagaiton<sup>tm</sup> w
 
 ## Run
 
-    CUDA_VISIBLE_DEVICES=0 python cifar10_resnet_perforatedai.py
+    CUDA_VISIBLE_DEVICES=0 python resnet_perforatedai.py
 
 
 !["Example Output](exampleOutput.png "Example Output")
