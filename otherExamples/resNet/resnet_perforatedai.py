@@ -170,8 +170,10 @@ def main():
     PBG.capAtN = True #Makes sure subsequent rounds last max as long as first round
     PBG.initialHistoryAfterSwitches = 2
     PBG.testSaves = True
-    PBG.testingDendriteCapacity = True
+    PBG.testingDendriteCapacity = False
     PBG.moduleNamesToConvert.append('BasicBlock')
+    
+    
     
     #Create the model
     model = models.resnet18(num_classes == num_classes)
