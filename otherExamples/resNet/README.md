@@ -1,6 +1,6 @@
-# CIFAR 10 example
+# EMNIST example
 
-This is a basic example that just runs Perforated Backpropagaiton<sup>tm</sup> with the default mnist example from the pytorch repository on the CIFAR 10 dataset with a ResNet.  mnist.py is the original and cifar10_resnet_PAI.py switches the dataset and adds the code for Perforated AI.
+This is an example that runs Perforated Backpropagaiton<sup>tm</sup> on the EMNIST dataset with a ResNet.  mnist.py is the original and resnet_perforatedai.py adds the code for Perforated AI.
 
 ## Setup
 
